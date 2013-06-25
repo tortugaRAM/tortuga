@@ -8,7 +8,7 @@ from ext.control import yawVehicleHelper
 
 
 DONE = core.declareEventType('DONE')
-
+YAWED = core.declareEventType('YAWED')
 
 #parameter lookup function
 #you is self, name is parameter to look up, default is default output
@@ -39,68 +39,72 @@ def freeze(you):
 #it sends a done event when it finishes
 #this publishes a done event when finished
 class MotionState(state.State):
-    YAWED = core.declareEventType('YAWED')
+
     #dive to a specified depth
     def dive(self, depth, rate):
         # Compute trajectories
         diveTrajectory = motion.trajectories.ScalarCubicTrajectory(
-            initialValue = you.stateEstimator.getEstimatedDepth(),
+            initialValue = self.stateEstimator.getEstimatedDepth(),
             finalValue = depth,
-            initialRate = you.stateEstimator.getEstimatedDepthRate(),
-            avgRate = diveRate)
+            initialRate = self.stateEstimator.getEstimatedDepthRate(),
+            avgRate = rate)
         # Dive
-        diveMotion = motion.basic.ChangeDepth(trajectory = diveTrajectory)
+        diveMotion = motion.basic.ChangeDepth(
+            trajectory = diveTrajectory)
         self.motionManager.setMotion(diveMotion)
         self._mYaw = False
         
 #translate locally x,y at rate rate
-        def translate(self,x,y,rate):
-            translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
-                initialValue = math.Vector2.ZERO,
-                finalValue = math.Vector2(y, x),
-                initialRate = self.stateEstimator.getEstimatedVelocity(),
-                avgRate = rate)
-            translateMotion = motion.basic.Translate(
-                trajectory = translateTrajectory,
-                frame = Frame.LOCAL)
-            self.motionManager.setMotion(translateMotion)
-            self._mYaw = False
+    def translate(self,x,y,rate):
+         translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
+            initialValue = math.Vector2.ZERO,
+            finalValue = math.Vector2(y, x),
+            initialRate = self.stateEstimator.getEstimatedVelocity(),
+            avgRate = rate)
+         translateMotion = motion.basic.Translate(
+            trajectory = translateTrajectory,
+            frame = Frame.LOCAL)
+         self.motionManager.setMotion(translateMotion)
+         self._mYaw = False
             
 #rotate to global orientation of deg degrees, ending after time t has passed
-        def yawGlobal(self,deg,t):
-            currentOrientation = self.stateEstimator.getEstimatedOrientation()
-            yawTrajectory = motion.trajectories.StepTrajectory(
-                initialValue = currentOrientation,
-                finalValue = math.Quaternion(math.Degree(deg), 
-                                             math.Vector3.UNIT_Z),
-                initialRate = self.stateEstimator.getEstimatedAngularRate(),
-                finalRate = math.Vector3.ZERO)
-            yawMotion = motion.basic.ChangeOrientation(yawTrajectory)
-            self.motionManager.setMotion(yawMotion)
-            self.timer = self.timerManager.newTimer(YAWED, self._delay)
-            self.timer.start()
-            self._mYaw = True
+    def yawGlobal(self,deg,t):
+        currentOrientation = self.stateEstimator.getEstimatedOrientation()
+        yawTrajectory = motion.trajectories.StepTrajectory(
+            initialValue = currentOrientation,
+            finalValue = math.Quaternion(math.Degree(deg), 
+                                         math.Vector3.UNIT_Z),
+            initialRate = self.stateEstimator.getEstimatedAngularRate(),
+            finalRate = math.Vector3.ZERO)
+        yawMotion = motion.basic.ChangeOrientation(yawTrajectory)
+        self.timer = self.timerManager.newTimer(YAWED, t)
+        self.timer.start()
+        self.motionManager.setMotion(yawMotion)
+        self._mYaw = True
             
 #rotate to local orientation of deg degrees, ending after time t has passed
-        def yaw(self,deg,t):
-            currentOrientation = self.stateEstimator.getEstimatedOrientation()
-            yawTrajectory = motion.trajectories.StepTrajectory(
+    def yaw(self,deg,t):
+        currentOrientation = self.stateEstimator.getEstimatedOrientation()
+        yawTrajectory = motion.trajectories.StepTrajectory(
             initialValue = currentOrientation,
             finalValue = yawVehicleHelper(currentOrientation, 
                                           deg),
             initialRate = self.stateEstimator.getEstimatedAngularRate(),
             finalRate = math.Vector3.ZERO)
-            yawMotion = motion.basic.ChangeOrientation(yawTrajectory)
-            self.motionManager.setMotion(yawMotion)
-            self.timer = self.timerManager.newTimer(YAWED, self._delay)
-            self.timer.start()
-            self._mYaw = True
+        yawMotion = motion.basic.ChangeOrientation(yawTrajectory)
+        self.timer = self.timerManager.newTimer(YAWED, t)
+        self.timer.start()
+        self.motionManager.setMotion(yawMotion)
+        self._mYaw = True
         
-        def FINISHED(self,event):
-            if(self._mYAW == False):
-                self.publish(DONE,core.Event())
-        def YAWED(self,event):
+    def FINISHED(self,event):
+        if(self._mYaw == False):
             self.publish(DONE,core.Event())
+        # else:
+        #    self.YAWED(self, event)
+
+    def YAWED(self,event):
+        self.publish(DONE,core.Event())
             
 #end motionState
 
