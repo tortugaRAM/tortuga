@@ -50,7 +50,7 @@ class Wait(state.State):
         return {"Start" : Start}
 
 # Start state --
-class Start(state.State):
+class Start(utility.MotionState):
     """
     This Start state dives down to a depth at which the gate should be around.
     Translate into a state that moves forward to look for the gate.
@@ -58,29 +58,24 @@ class Start(state.State):
 
     @staticmethod
     def transitions():
-        return { motion.basic.MotionManager.FINISHED : FindGate }
+        return { motion.basic.MotionManager.FINISHED : Start,
+                 utility.DONE : FindGate }
 
     @staticmethod
     def getattr():
         return { 'rate': 0.3 }
     
     def enter(self):
-        # Go 5 units down (one unit is about one meter)
-        diveTrajectory = motion.trajectories.ScalarCubicTrajectory(
-            initialValue = self.stateEstimator.getEstimatedDepth(),
-            finalValue = 5, #self.ai.data['config'].get('gateDepth', 5),
-            initialRate = self.stateEstimator.getEstimatedDepthRate(),
-            avgRate = self._rate)
-        diveMotion = motion.basic.ChangeDepth(
-            trajectory = diveTrajectory)
+        self.dive(5, self._rate)
+ 
+    def exit(self):
+        utility.freeze(self)
+        self.motionManager.stopCurrentMotion()    
+#end of Start state
        
-        self.motionManager.setMotion(diveMotion)
-#end of Start state     
-        
-
 # added as of 2013
 # FindGate state --
-class FindGate(state.State):
+class FindGate(utility.MotionState):
     
     """
     The robot should be facing in the general direction of the gate at start off.
@@ -95,6 +90,7 @@ class FindGate(state.State):
     def transitions():
         return { vision.EventType.BUOY_FOUND : GateApproachCenter,
                  motion.basic.MotionManager.FINISHED : FindGate,
+                 utility.DONE : FindGate,
                  FindGate.DONE : Forward}
 
     @staticmethod
@@ -107,16 +103,18 @@ class FindGate(state.State):
     #searchForward, goes forward until it sees the gate
     def searchForward(self):
         self.COUNT += 1
-        forwardTrajectory = motion.trajectories.Vector2CubicTrajectory(
-            initialValue = math.Vector2.ZERO,
-            finalValue = math.Vector2(self._distance, 0),
-            initialRate = self.stateEstimator.getEstimatedVelocity(),
-            avgRate = self._avgRate)
-        forwardMotion = motion.basic.Translate(
-            trajectory = forwardTrajectory,
-            frame = Frame.LOCAL)
+#        forwardTrajectory = motion.trajectories.Vector2CubicTrajectory(
+#            initialValue = math.Vector2.ZERO,
+#            finalValue = math.Vector2(self._distance, 0),
+#            initialRate = self.stateEstimator.getEstimatedVelocity(),
+#            avgRate = self._avgRate)
+#        forwardMotion = motion.basic.Translate(
+#            trajectory = forwardTrajectory,
+#            frame = Frame.LOCAL)
+#
+#        self.motionManager.setMotion(forwardMotion)
 
-        self.motionManager.setMotion(forwardMotion)
+        self.translate(0, self._distance, self._avgRate)
 
     def nextStep(self):
         # After 2 robot lengths quit the search and just go forward
@@ -149,7 +147,7 @@ class GateApproachCenter(approach.XZCenter):
 
     @staticmethod
     def getattr():
-        return { 'dDisp' : .4 ,  'sDisp' : .2,
+        return { 'fDisp' : .4 ,  'sDisp' : .2,
                  'xmin' : -0.035 , 'xmax' : 0.035,
                  'zmin' : -0.05 , 'zmax' : 0.00,
                  'xDisp' : 0, 'yDisp' : 0, 'zDisp' : 0 }
@@ -158,8 +156,11 @@ class GateApproachCenter(approach.XZCenter):
        pass
 
     def BUOY_FOUND(self, event):
+        # lastLocation of the robot when gate is in view
+        global lastDepth
         global lastLocation 
-        lastLocation = event
+        lastLocation = self.stateEstimator.getEstimatedPosition()
+        lastDepth = self.stateEstimator.getEstimatedDepth()
         self.run(event)
 
     def end_cond(self, event):
@@ -173,7 +174,7 @@ class GateApproachCenter(approach.XZCenter):
 
 
 # start of GateApproachApproach which actually goes forward
-class GateApproachApproach(approach.ForwardXYCenter):
+class GateApproachApproach(approach.SuperApproach):
     
     @staticmethod
     def transitions():
@@ -183,11 +184,11 @@ class GateApproachApproach(approach.ForwardXYCenter):
 
     @staticmethod
     def getattr():
-        global critRange
-        critRange = 3
-        return { 'fDisp' : .4 ,  'sDisp' : .2,
+        return { 'dx' : .35,'dy' : .25, 'dz' : .4,
+                 'fDisp' : .4 ,  'sDisp' : .2,
                  'xmin' : -0.035 , 'xmax' : 0.035,
-                 'rmin' : critRange , 'rmax' : 3.25,
+                 'zmin' : -0.05, 'zmax': 0.00,
+                 'rmin' : 2.90 , 'rmax' : 3,
                  'xDisp' : 0, 'yDisp' : 0, 'zDisp' : 0 }
 
     def enter(self):
@@ -199,7 +200,9 @@ class GateApproachApproach(approach.ForwardXYCenter):
         self.run(event)
 
     def end_cond(self, event):
-        return ((self.decideY(event) == 0) and (self.decideX(event) == 0) )
+        return ((self.decideY(event) == 0) \ 
+                and (self.decideX(event) == 0) \
+                and (self.decideZ(event) == 0))
 
     def exit(self):
         utility.freeze(self)
@@ -224,8 +227,8 @@ class GateReacquire(state.State):
     Forward state
     """
    
-    global critRange
-    global lastLocation 
+    global lastLocation
+    global lastDepth
     DONE = core.declareEventType('DONE')
 
     @staticmethod
@@ -248,44 +251,31 @@ class GateReacquire(state.State):
             self.run(event)
 
     def run(self):
-        #Forwards or Backwards motion
-        xAxisCorrection = motion.Trajectories.Vector2CubicTrajectory(
+        #TranslateMotion
+        XYCorrectionTrajectory = motion.Trajectories.Vector2CubicTrajectory(
             initalValue = math.Vector2.ZERO,
-            finalValue = math.Vector2(lastLocation.range-critRange, 0),
+            finalValue = lastLocation,
             initialRate = self.stateEstimator.getEstimatedVelocity(),
             avgRate = self._speed)
 
-        xAxisCorrectiveMotion = motion.basic.Translate(
-            trajectory = xAxisCorrection,
-            frame = Frame.LOCAL)
-
-        #Strafing Motion
-        yAxisCorrection = motion.Trajectories.Vector2CubicTrajectory(
-            initialValue = math.Vector2.ZERO,
-            finalValue = math.Vector2(0, lastLocation.x),
-            initialRate = self.stateEsitmator.getEsitmatedVelocity(),
-            avgRate = self._speed)
-
-        yAxisCorrectiveMotion = motion.basic.Translate(
-            trajectory = yAxisCorrection,
+        XYMotion = motion.basic.Translate(
+            trajectory = XYCorrectionTrajectory,
             frame = Frame.LOCAL)
 
         #Dive Motion
         diveTrajectory = motion.trajectories.ScalarCubicTrajectory(
             initialValue = self.stateEstimator.getEstimatedDepth(),
-            finalValue = self.stateEstimator.getEsitmatedDepth()-lastLocation.y,
+            finalValue = lastDepth,
             initialRate = self.stateEstimator.getEstimatedDepthRate(),
             avgRate = self._speed)
         diveMotion = motion.basic.ChangeDepth(
             trajectory = diveTrajectory)
 
-        self.motionManager.setMotion(xAxisCorrectiveMotion, yAxisCorrectiveMotion, diveMotion)
+        self.motionManager.setMotion(XYMotion, diveMotion)
+        
         
     def exit(self):
         self.motionManager.stopCurrentMotion()
-
-
-
 # end of GateReacquire state
 
 
@@ -302,7 +292,7 @@ class Forward(state.State):
 
     @staticmethod
     def getattr():
-        return { 'avgRate' : 0.15, 'distance' : 3.25 }
+        return { 'avgRate' : 0.15, 'distance' : 3 }
 
 
     def enter(self):
