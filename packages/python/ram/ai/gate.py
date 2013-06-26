@@ -88,7 +88,7 @@ class FindGate(utility.MotionState):
 
     @staticmethod
     def transitions():
-        return { vision.EventType.BUOY_FOUND : GateApproachCenter,
+        return { vision.EventType.BUOY_FOUND : GateApproachApproach,
                  motion.basic.MotionManager.FINISHED : FindGate,
                  utility.DONE : FindGate,
                  FindGate.DONE : Forward}
@@ -184,11 +184,11 @@ class GateApproachApproach(approach.SuperApproach):
 
     @staticmethod
     def getattr():
-        return { 'dx' : .35,'dy' : .25, 'dz' : .4,
+        return { 'dx' : .35,'dy' : .25, 'dz' : .25,
                  'fDisp' : .4 ,  'sDisp' : .2,
                  'xmin' : -0.035 , 'xmax' : 0.035,
                  'zmin' : -0.05, 'zmax': 0.00,
-                 'rmin' : 2.90 , 'rmax' : 3,
+                 'rmin' : 2.75 , 'rmax' : 3,
                  'xDisp' : 0, 'yDisp' : 0, 'zDisp' : 0 }
 
     def enter(self):
@@ -200,9 +200,9 @@ class GateApproachApproach(approach.SuperApproach):
         self.run(event)
 
     def end_cond(self, event):
-        return ((self.decideY(event) == 0) \ 
-                and (self.decideX(event) == 0) \
-                and (self.decideZ(event) == 0))
+        return ((self.decideY(event) == 0) and \
+                (self.decideX(event) == 0) and \
+                (self.decideZ(event) == 0))
 
     def exit(self):
         utility.freeze(self)
@@ -214,10 +214,10 @@ class GateApproachApproach(approach.SuperApproach):
 
 # added as of 2013
 # GateReacquire state --
-# Small note: critRange is a global variable, it is used here to determine if the robot has overshot
-# its stopping position. lastLocation is also a global variable that stores the last event
-# prior to being lost. Both were set in the previous state, Gateapproach and both will be used
-# to determine the proper location of the robot before losing the gate.
+# Small note: critRange is a global variable, it is used here to determine if the robot 
+# has overshot its stopping position. lastLocation is also a global variable that stores 
+# the last event prior to being lost. Both were set in the previous state, Gateapproach 
+# and both will be used to determine the proper location of the robot before losing the gate.
 class GateReacquire(state.State):
 
     """
