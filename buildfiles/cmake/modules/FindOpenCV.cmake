@@ -48,8 +48,8 @@
 #----------------------------------------------------------
 
 
-FIND_PATH(OPENCV_DIR OpenCVConfig.cmake /home/kmcbryan/Documents/opencv-2.4.5/release3 NO_DEFAULT_PATH)
-message(" KateOPENCV_DIR : " ${OPENCV_DIR})
+FIND_PATH(OPENCV_DIR OpenCVConfig.cmake /home/tortuga/opencv-2.4.5/build NO_DEFAULT_PATH)
+#message(" KateOPENCV_DIR : " ${OPENCV_DIR})
 ##====================================================
 ## Find OpenCV libraries
 ##----------------------------------------------------
@@ -63,7 +63,7 @@ if(EXISTS "${OPENCV_DIR}")
 
                 ## Search for a specific version
                 set(CVLIB_SUFFIX "${OpenCV_VERSION_MAJOR}${OpenCV_VERSION_MINOR}${OpenCV_VERSION_PATCH}")
-	        message(" KateVERSION: " ${CVLIB_SUFFIX})
+	        #message(" KateVERSION: " ${CVLIB_SUFFIX})
 
         #Otherwise it try to guess it.
         else(EXISTS "${OPENCV_DIR}/OpenCVConfig.cmake")
@@ -120,7 +120,7 @@ if(EXISTS "${OPENCV_DIR}")
                 endif(OpenCV_${__CVLIB}_LIBRARY)
                 
         endforeach(__CVLIB)
-	message(" KateopecvLibs: " ${OpenCV_LIBS})
+	#message(" KateopecvLibs: " ${OpenCV_LIBS})
 
         set(OpenCV_FOUND ${OpenCV_FOUND_TMP} CACHE BOOL "" FORCE)
 

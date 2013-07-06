@@ -93,7 +93,7 @@ def setup_posix_libs():
     EXTERNAL_LIBS = {
         'wxWidgets' : ConfigLibrary('wxWidgets', '2.8', ['wx/wx.h'], 
                                     'wx-config', lib_flag='--libs std,gl'),
-        'OpenCV' : PkgConfigLibrary('opencv', '1.0', ['cv.h']),
+        #'OpenCV' : PkgConfigLibrary('opencv', '1.0', ['cv.h']),
         'Root' : ConfigLibrary('root', '5.26', ['root/TH1D.h'],
                                'root-config', lib_flag='--libs'),
         'Root.Graphics' : ConfigLibrary('root', '5.26', ['root/TH1D.h'],
@@ -207,9 +207,9 @@ def setup_windows_libs():
                            LINKFLAGS = ['/LIBPATH:'+python_lib_path],
                            CPPFLAGS = ['/wd4826']),
         
-        'OpenCV' : Library('OpenCV', '1.0', ['opencv/cv.h'],
-                           ['cv', 'cxcore','highgui','cxts','cvaux','ml'],
-                           CPPPATH = ram_include + '/opencv'),
+        #'OpenCV' : Library('OpenCV', '1.0', ['opencv/cv.h'],
+        #                   ['cv', 'cxcore','highgui','cxts','cvaux','ml'],
+        #                   CPPPATH = ram_include + '/opencv'),
         
         'FANN' : Library('FANN', '2.1.0', ['floatfann.h','fann.h'],
                          ['floatfann', 'fann'])
@@ -257,7 +257,7 @@ def _get_internal_lib(env, name):
         INTERNAL_LIBS = {
             'vision' : InternalLibrary('vision',
                                        int_deps = ['pattern', 'core', 'math'],
-                                       ext_deps = ['OpenCV', 'Segment',
+                                       ext_deps = ['Segment',
                                                    'Boost.Thread',
                                                    'Boost.Regex','FANN',
                                                    'libdc1394', 'fftw']),
