@@ -17,33 +17,52 @@ DownwardCamera:
     gain: -1
 
 OrangePipeDetector:
-    rOverGMin: 1.05 #0.75 (NEW# 0.88)
-    rOverGMax: 2.41 #1.5 (NEW# 2.16)
-    bOverRMax: 0.75  #(NEW# 2.25)
-    filtLMax: 255
-    filtLMin: 152
-    filtUMax: 191
-    filtUMin: 95
-    filtVMax: 210
-    filtVMin: 116
-    centeredLimitt: 0.4
+    ColorFilterLookupTable: 0
+    bOverRMax: 0.4
+    centeredLimit: 0.1
+    erodeIterations: 1
+    openIterations: 0
+    filtLMax: 244
+    filtLMin: 0
+    filtUMax: 255
+    filtUMin: 86
+    filtVMax: 255
+    filtVMin: 134
     minBrightness: 100
     minPixels: 3000
-    minPixelsFound: 1500
-    erodeIterations: 1
+    minPixelsFound: 2500
+    noHough: 0
+    rOverGMax: 2
+    rOverGMin: 1
+    samePipeThreshold: 0.2
+    useLUVFilter: 1
 
 BuoyDetector:
-    debug: 0
-    filtGreenCMax: 223
-    filtGreenCMin: 38
-    filtGreenHMax: 92
-    filtGreenHMin: 70
-    filtGreenLMax: 232
-    filtGreenLMin: 85 #120
+    GreenColorFilterLookupTable: 0
+    RedColorFilterLookupTable: 0
+    YellowColorFilterLookupTable: 0
+    almostHitPercentage: 0.2
+    bottomIgnorePercentage: 0.15
+    checkBlack: 0
+    debug: 2
+    dilateIterations: 1
+    erodeIterations: 1
+    filtBlackCMax: 255
+    filtBlackCMin: 0
+    filtBlackHMax: 255
+    filtBlackHMin: 0
+    filtBlackLMax: 255
+    filtBlackLMin: 0
+    filtGreenCMax: 60
+    filtGreenCMin: 0
+    filtGreenHMax: 172
+    filtGreenHMin: 160
+    filtGreenLMax: 190
+    filtGreenLMin: 100
     filtRedCMax: 255
     filtRedCMin: 34
     filtRedHMax: 32
-    filtRedHMin: 233
+    filtRedHMin: 221
     filtRedLMax: 215
     filtRedLMin: 80
     filtYellowCMax: 255
@@ -51,14 +70,20 @@ BuoyDetector:
     filtYellowHMax: 67
     filtYellowHMin: 43
     filtYellowLMax: 239
-    filtYellowLMin: 67 #120
-    maxAspectRatio: 1.5
-    minAspectRatio: 0.6
+    filtYellowLMin: 67
+    leftIgnorePercentage: 0
+    maxAspectRatio: 1.6
+    maxDistance: 15
+    maxTotalBlackCheckSize: 0.1
+    minAspectRatio: 0.7
+    minBlackPercentage: 0.25
     minHeight: 20
-    minPixelPercentage: 0.5
+    minPixelPercentage: 0.1
     minPixels: 15
-    minWidth: 20
-    almostHitPercentage: 0.17
+    minWidth: 25
+    rightIgnorePercentage: 0
+    topIgnorePercentage: 0.15
+
 
 CupidDetector:
     ColorFilterLookupTable: 0

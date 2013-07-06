@@ -1,6 +1,6 @@
 GUI:
     updateRate: 5
-    singleSubsystem: 1
+    numSubsystems: 1
 
 # Config for the vehicle
 # Each module is a seperate system that needs to be started up
@@ -12,11 +12,11 @@ Subsystems:
 
         #ForwardRecorders:
         #    forward.avi: 5 # Really compressed @ 5Hz
-        #    forward.rmv: 5 # Raw video at 10Hz
+        #forward.rmv: 5 # Raw video at 10Hz
         #    "50000(320,240)": 5 # Really compressed streaming @ 5hz
         #DownwardRecorders:
         #    downward.avi: 5 # Really compressed @ 5Hz
-        #    downward.rmv: 5 # Raw video at 10Hz
+        #downward.rmv: 5 # Raw video at 10Hz
         #    "50001(320,240)": 5 # Really compressed streaming @ 5hz
 
         # Includes all camera and vision system settings
@@ -27,16 +27,17 @@ Subsystems:
          type: AI
 
          # Includes the "taskOrder" for the AI
-         INCLUDE: data/config/ai/sd_pool_ai.yml
+         INCLUDE: data/config/ai/transdec2011_ai.yml
 
 
     StateMachine:
         type: StateMachine
         depends_on: ["EventHub", "QueuedEventHub", "Controller", "Vehicle",
-                     "MotionManager", "TimerManager", "Ai", "VisionSystem"]
+                     "MotionManager", "TimerManager", "Ai", "VisionSystem",
+                     "StateEstimator"]
         States:
             # Includes all the state specific NBRF settings
-            INCLUDE: data/config/ai/sd_pool_state.yml
+            INCLUDE: data/config/ai/transdec2011_state.yml
 
 
     # Includes all common subsystems    

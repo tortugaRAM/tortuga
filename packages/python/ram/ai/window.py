@@ -34,7 +34,9 @@ class Start(state.State):
         return { 'diveRate' : 0.3 , 'speed' : 0.3 }
 
     def enter(self):
-        self.visionSystem.buoyDetectorOn()
+        self.visionSystem.cupidDetectorOn()
+
+        self.ai.data['torpsFired'] = 0
 
         windowDepth = self.ai.data['config'].get('windowDepth', -1)
 
@@ -62,7 +64,7 @@ class Search(state.ZigZag):
     @staticmethod
     def transitions():
         return { motion.basic.MotionManager.FINISHED : Search ,
-                 vision.EventType.BUOY_FOUND : ReAlign , 
+                 vision.EventType.LARGE_CIRCLE_FOUND : ReAlign , 
                  state.ZigZag.DONE : End }
 
 
@@ -108,7 +110,7 @@ class Strafe(state.State):
     @staticmethod
     def transitions():
         return { motion.basic.MotionManager.FINISHED : End ,
-                 vision.EventType.BUOY_FOUND : Center }
+                 vision.EventType.LARGE_CIRCLE_FOUND : WindowCenter }
 
     @staticmethod
     def getattr():
@@ -130,7 +132,7 @@ class Strafe(state.State):
         self.motionManager.stopCurrentMotion()
 
 
-class Center(state.State):
+class WindowCenter(state.Center):
     
     CENTERED = core.declareEventType('CENTERED')
     TIMEOUT = core.declareEventType('TIMEOUT')
@@ -139,77 +141,12 @@ class Center(state.State):
 
     @staticmethod
     def transitions():
-        return { vision.EventType.BUOY_FOUND : Center ,
-                 Center.CENTERED : Fire }
+        return { vision.EventType.LARGE_CIRCLE_FOUND : WindowCenter ,
+                 state.Center.CENTERED : Fire ,
+                 state.Center.TIMEOUT : Fire }
 
-    @staticmethod
-    def getattr():
-        return { 'speed' : 0.2 , 'diveRate' : 0.2 , 'distance' : 10 ,
-                 'xmin' : -0.05 , 'xmax' : 0.05 , 
-                 'ymin' : -0.05 , 'ymax' : 0.05 }
-
-    def move(self, distance):
-        translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
-            initialValue = math.Vector2.ZERO,
-            finalValue = math.Vector2(0, distance),
-            initialRate = self.stateEstimator.getEstimatedVelocity(),
-            avgRate = self._speed)
-        translateMotion = motion.basic.Translate(
-            trajectory = translateTrajectory,
-            frame = Frame.LOCAL)
-
-        self.motionManager.setMotion(translateMotion)
-
-    def dive(self, distance):
-        diveTrajectory = motion.trajectories.ScalarCubicTrajectory(
-            initialValue = self.stateEstimator.getEstimatedDepth(),
-            finalValue = self.stateEstimator.getEstimatedDepth() + distance,
-            initialRate = self.stateEstimator.getEstimatedDepthRate(),
-            avgRate = self._diveRate)
-        diveMotion = motion.basic.ChangeDepth(trajectory = diveTrajectory)
-
-        self.motionManager.setMotion(diveMotion)
-
-    def enter(self):
-        self.STEPNUM = 0
-
-    def exit(self):
-        self.motionManager.stopCurrentMotion()
-
-    def BUOY_FOUND(self, event):
-        if(self.STEPNUM == 0):
-            print("Window X: " + str(event.x))
-            if(event.x <= self._xmin):
-                print("Moving left to compensate")
-                self.move(-self._distance)
-            elif(event.x >= self._xmax):
-                print("Moving right to compensate")
-                self.move(self._distance)
-
-            self.STEPNUM += 1
-        
-        elif(self.STEPNUM == 1):
-            if(event.x > self._xmin and event.x < self._xmax):
-                print("X Axis Aligned")
-                self.motionManager.stopCurrentMotion()
-                self.STEPNUM += 1
-
-        elif(self.STEPNUM == 2):
-            print("Window Y: " + str(event.y))
-            if(event.y <= self._ymin):
-                print("Moving down to compensate")
-                self.dive(self._distance)
-            elif(event.y >= self._ymax):
-                print("Moving up to compensate")
-                self.dive(-self._distance)
-
-            self.STEPNUM += 1
-
-        elif(self.STEPNUM == 3):
-            if(event.y > self._ymin and event.y < self._ymax):
-                print("Y Axis Aligned, All Done")
-                self.motionManager.stopCurrentMotion()
-                self.publish(Center.CENTERED, core.Event())
+    def LARGE_CIRCLE_FOUND(self, event):
+        self.update(event)
 
 
 class Fire(state.State):
@@ -219,14 +156,18 @@ class Fire(state.State):
     
     @staticmethod
     def transitions():
-        return { vision.EventType.BUOY_FOUND : Fire ,
+        return { vision.EventType.LARGE_CIRCLE_FOUND : Fire ,
                  Fire.FIRED : MoveOver ,
                  Fire.DONE : End }
 
-    def BUOY_FOUND(self, event):
+    def LARGE_CIRCLE_FOUND(self, event):
         self.vehicle.fireTorpedo()
-        self.publish(Fire.FIRED, core.Event())
-
+        self.ai.data['torpsFired'] += 1
+        if(self.ai.data['torpsFired'] >= 2):
+            self.publish(Fire.DONE, core.Event())
+        else:
+            self.publish(Fire.FIRED, core.Event())
+            
 
 class MoveOver(state.State):
 
@@ -237,12 +178,12 @@ class MoveOver(state.State):
     @staticmethod
     def getattr():
         return { 'speed' : 0.3 , 'diveRate' : 0.3 , 
-                 'height' : 3 , 'distance' : 5 , 'delay' : 5 }
+                 'height' : 4 , 'distance' : 5 , 'delay' : 5 }
 
     @staticmethod
     def transitions():
         return { motion.basic.MotionManager.FINISHED : MoveOver , 
-                 MoveOver.DONE : Center }
+                 MoveOver.DONE : WindowCenter }
 
     def enter(self):
         self.STEPNUM = 0
@@ -306,4 +247,5 @@ class MoveOver(state.State):
 
 class End(state.State):
     def enter(self):
+        self.visionSystem.cupidDetectorOff()
         self.publish(COMPLETE, core.Event())

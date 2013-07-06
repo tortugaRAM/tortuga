@@ -206,7 +206,7 @@ class PingerState(state.State):
         self._distance = self._config.get('distance', 1)
         self.ai.data['minSonarError'] = self._config.get('sonarError', 1)
      
-    def enter(self, timeout = 2.5):
+    def enter(self, timeout = 15):
         self._pipe = ram.motion.pipe.Pipe(0, 0, 0, timeStamp = None)
         self._lastTime = 0
         self._recalculate = False
@@ -393,15 +393,15 @@ class Aligning(VaseTrackingState):
     def getattr():
         attrs = {}
         attrs.update(VaseTrackingState.getattr())
-        attrs.update({'delay' : 20})
+        attrs.update({'delay' : 15})
         return attrs
 
     def enter(self):
 
         # Turn on the vision system
-        self.visionSystem.pipeLineDetectorOn()
+        #self.visionSystem.pipeLineDetectorOn()
 
-        VaseTrackingState.enter(self, 90)
+        #VaseTrackingState.enter(self, 90)
 
         self.timer = self.timerManager.newTimer(Aligning.CENTERED, 
                                                 self._delay)
@@ -428,7 +428,7 @@ class CloseSeeking(TranslationSeeking):
     def _loadSettings(self):
         TranslationSeeking._loadSettings(self)
         self._closeZ = self._config.get('closeZ', 0.8)
-        self._distance = self._config.get('distance', 1)
+        self._distance = self._config.get('distance', 2)
         self._motionRange = self._config.get('motionRange', .05)
     
 class FastDive(state.State):

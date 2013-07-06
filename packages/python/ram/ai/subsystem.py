@@ -88,7 +88,10 @@ class AI(core.Subsystem):
                        'sonarDepth', 'safeDepth', 'safeOffset', 'hedgeDepth',
                        'buoyDepth', 'buoyX', 'buoyY', 'targetBuoys', 
                        'windowDepth', 'windowX', 'windowY', 'heartSize',
-                       'windowOrientation', 'targetWindows', 'windowOffset'])
+                       'windowOrientation', 'targetWindows', 'windowOffset',
+                       'uprightsDepth', 'uprightsOrientation',
+                       'grapesDepth', 'grapesOrientation',
+                       'fakeGateDepth'])
         pipeOptions = set(['biasDirection', 'threshold', 'taskTimeout'])
         pipeObjective = set(['biasDirection', 'threshold', 'rotation',
                              'duration', 'legTime', 'sweepAngle', 'sweepSpeed',

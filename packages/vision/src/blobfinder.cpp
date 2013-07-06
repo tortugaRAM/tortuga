@@ -512,6 +512,5 @@ Mat blobfinder::SaturationFilter(vector<Mat> hsv_planes,double minH, double maxH
 		return(img);
 };
 
-
 }//end namspace vision
 }//end namespace RAM

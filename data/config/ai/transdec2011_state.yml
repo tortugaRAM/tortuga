@@ -1,16 +1,29 @@
 # Gate
 ram.ai.course.Gate:
     pipeDelay: 60
+
+# FakeGate
+ram.ai.course.FakeGate:
+    gateOrientation: -120
+
+# Vase
+ram.ai.course.Vase:
+    vaseOrientation: 90
+
 # Pipe
 ram.ai.course.Pipe:
     pipesToFind: 3
+# Octagon
+ram.ai.course.Octagon:
+    release: True
+    delay: 60
 
 # Gate sub task
 ram.ai.gate.Start:
     speed: 0.33
 ram.ai.gate.Forward:
-    avgRate: 0.2
-    distance: 11
+    avgRate: 0.3
+    distance: 12
 
 # Pipe task
 ram.ai.pipe.Seeking:
@@ -23,6 +36,16 @@ ram.ai.pipe.Centering:
     angleChange: 1
 ram.ai.pipe.AlongPipe:
     angleDistance: 0.1
+
+# Vase
+ram.ai.vase.FastDive:
+    depth: 8.5
+ram.ai.vase.SlowDive:
+    depth: 10.5
+ram.ai.vase.CloseSeeking:
+    closeZ: 0.98
+ram.ai.vase.ReAlign:
+    closeZ: 0.95
 
 # Light/Bouy sub task
 ram.ai.light.Searching:
@@ -56,29 +79,29 @@ ram.ai.duct.Aligning:
     desiredRange: 0.5
 
 # Buoy Task
-ram.ai.buoy.Searching:
-    legTime: 5
-    sweepAngle: 15
-ram.ai.buoy.CorrectDepth:
-    boxHeight: 2.0
-ram.ai.buoy.Align:
-    desiredRange: 7
-    depthGain: 0
-    dDepthGain: 0.0
-    iDepthGain: 0.0
-    maxDepthDt: 0.3
-    planeThreshold: 0.15
-    yawGain: 0.8
-    translate: False
-    iTranslateGain: 0.1
-    dTranslateGain: 0.2
-    maxYaw: 2
-ram.ai.buoy.Seek:
-    maxYaw: 1
-ram.ai.buoy.Hit:
-    duration: 1
-ram.ai.buoy.Reposition:
-    duration: 6
+# ram.ai.buoy.Searching:
+#     legTime: 5
+#     sweepAngle: 15
+# ram.ai.buoy.CorrectDepth:
+#     boxHeight: 2.0
+# ram.ai.buoy.Align:
+#     desiredRange: 7
+#     depthGain: 0
+#     dDepthGain: 0.0
+#     iDepthGain: 0.0
+#     maxDepthDt: 0.3
+#     planeThreshold: 0.15
+#     yawGain: 0.8
+#     translate: False
+#     iTranslateGain: 0.1
+#     dTranslateGain: 0.2
+#     maxYaw: 2
+# ram.ai.buoy.Seek:
+#     maxYaw: 1
+# ram.ai.buoy.Hit:
+#     duration: 1
+# ram.ai.buoy.Reposition:
+#     duration: 6
 
 # Target Task
 ram.ai.target.SeekingToCentered:
@@ -182,7 +205,9 @@ ram.ai.hedge.Through:
     depthOffset: 0.8
     duration: 10
 
-# Bin Sub task
+# Bin Sub taks
+ram.ai.bin.Searching:
+    distance: 10
 ram.ai.bin.Seeking:
     speedGain: 3
     maxSpeed: 3
@@ -293,6 +318,7 @@ ram.ai.sonar.FarSeeking:
     maxSpeed: 2
     speedGain: 5
     midRangeZ: 0.8
+    closeZ: 0.7
     timeout: 6.5
 ram.ai.sonar.Hovering:
     maxSidewaysSpeed: 1

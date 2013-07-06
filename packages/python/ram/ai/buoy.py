@@ -36,9 +36,8 @@ class Start(state.State):
     def enter(self):
         self.visionSystem.buoyDetectorOn()
 
-        buoyDepth = self.ai.data['config'].get('buoyDepth', -1)
+        buoyDepth = self.ai.data['config'].get('buoyDepth', 7.5)
 
-        self._orientation = self.ai.data['buoyOrientation']
         self.ai.data['buoyData'] = {}
         self.ai.data['ignoreBuoy'] = {}
         for color in self.ai.data['buoyList']:
@@ -53,19 +52,10 @@ class Start(state.State):
             initialRate = self.stateEstimator.getEstimatedDepthRate(),
             avgRate = self._diveRate)
         
-        currentOrientation = self.stateEstimator.getEstimatedOrientation()
-        yawTrajectory = motion.trajectories.StepTrajectory(
-            initialValue = currentOrientation,
-            finalValue = math.Quaternion(
-                math.Degree(self._orientation), math.Vector3.UNIT_Z),
-            initialRate = self.stateEstimator.getEstimatedAngularRate(),
-            finalRate = math.Vector3.ZERO)
-
         # Dive yaw and translate
         diveMotion = motion.basic.ChangeDepth(trajectory = diveTrajectory)
-        yawMotion = motion.basic.ChangeOrientation(yawTrajectory)
         
-        self.motionManager.setMotion(diveMotion, yawMotion)
+        self.motionManager.setMotion(diveMotion)
 
     def exit(self):
         self.motionManager.stopCurrentMotion()
@@ -92,7 +82,7 @@ class Strafe(state.State):
     def transitions():
         return { motion.basic.MotionManager.FINISHED : Strafe ,
                  vision.EventType.BUOY_FOUND : Strafe ,
-                 Strafe.FOUND_BUOY : Center ,
+                 Strafe.FOUND_BUOY : BuoyCenter ,
                  Strafe.DONE : Align,
                  Strafe.NONE_LEFT : End
                  }
@@ -169,7 +159,7 @@ class Align(state.State):
     def transitions():
         return { motion.basic.MotionManager.FINISHED : Align ,
                  Align.NONE_LEFT : End , 
-                 Align.ALIGNED : Center} 
+                 Align.ALIGNED : BuoyCenter} 
 
     @staticmethod
     def getattr():
@@ -224,118 +214,24 @@ class Align(state.State):
         self.publish(Align.ALIGNED, core.Event())
 
 
-class Center(state.State):
-    
-    CENTERED = core.declareEventType('CENTERED')
-    TIMEOUT = core.declareEventType('TIMEOUT')
-
-    STEPNUM = 0
+class BuoyCenter(state.Center):
 
     @staticmethod
     def transitions():
-        return { motion.basic.MotionManager.FINISHED : Center,
-                 vision.EventType.BUOY_FOUND : Center ,
-                 Center.CENTERED : Attack , 
-                 Center.TIMEOUT : Hit }
-
-    @staticmethod
-    def getattr():
-        return { 'speed' : 0.15 , 'diveRate' : 0.15 , 'distance' : 2 ,
-                 'xmin' : -0.05 , 'xmax' : 0.05 , 
-                 'ymin' : -0.05 , 'ymax' : 0.05,
-                 'timeout' : 20}
-
-    def move(self, distance):
-        if not self.move_again:
-            return
-
-        translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
-            initialValue = math.Vector2.ZERO,
-            finalValue = math.Vector2(0, distance),
-            initialRate = self.stateEstimator.getEstimatedVelocity(),
-            avgRate = self._speed)
-        translateMotion = motion.basic.Translate(
-            trajectory = translateTrajectory,
-            frame = Frame.LOCAL)
-
-        self.motionManager.setMotion(translateMotion)
-
-        self.move_again = False
-
-    def dive(self, distance):
-        if not self.move_again:
-            return
-
-        diveTrajectory = motion.trajectories.ScalarCubicTrajectory(
-            initialValue = self.stateEstimator.getEstimatedDepth(),
-            finalValue = self.stateEstimator.getEstimatedDepth() + distance,
-            initialRate = self.stateEstimator.getEstimatedDepthRate(),
-            avgRate = self._diveRate)
-        diveMotion = motion.basic.ChangeDepth(trajectory = diveTrajectory)
-
-        self.motionManager.setMotion(diveMotion)
-
-        self.move_again = False
-
-    def enter(self):
-        self.STEPNUM = 0
-
-        self.move_again = True
-
-        self.timer = self.timerManager.newTimer(Center.TIMEOUT, self._timeout)
-        self.timer.start()
-
-    def exit(self):
-        if self.timer is not None:
-            self.timer.stop()
-        self.motionManager.stopCurrentMotion()
-
-
-    def FINISHED(self, event):
-        self.move_again = True
+        return { motion.basic.MotionManager.FINISHED : BuoyCenter,
+                 vision.EventType.BUOY_FOUND : BuoyCenter ,
+                 state.Center.CENTERED : Attack , 
+                 state.Center.TIMEOUT : Hit }
 
     def BUOY_FOUND(self, event):
         if(str(event.color).lower() != self.ai.data['buoyColor']):
             return
 
-        if(self.STEPNUM == 0):
-            #print("Buoy X: " + str(event.x))
-            if(event.x <= self._xmin):
-                #print("Moving left to compensate")
-                self.move(-self._distance)
-            elif(event.x >= self._xmax):
-                #print("Moving right to compensate")
-                self.move(self._distance)
+        if(event.y < -0.4):
+            return
 
-            self.STEPNUM += 1
-        
-        elif(self.STEPNUM == 1):
-            if(event.x > self._xmin and event.x < self._xmax):
-                #print("X Axis Aligned")
-                self.motionManager.stopCurrentMotion()
-                self.move_again = True
-                self.STEPNUM += 1
-            else:
-                self.STEPNUM -= 1
+        self.update(event)
 
-        elif(self.STEPNUM == 2):
-            #print("Buoy Y: " + str(event.y))
-            if(event.y <= self._ymin):
-                #print("Moving down to compensate")
-                self.dive(self._distance)
-            elif(event.y >= self._ymax):
-                #print("Moving up to compensate")
-                self.dive(-self._distance)
-
-            self.STEPNUM += 1
-
-        elif(self.STEPNUM == 3):
-            if(event.y > self._ymin and event.y < self._ymax):
-                #print("Y Axis Aligned, All Done")
-                self.motionManager.stopCurrentMotion()
-                self.publish(Center.CENTERED, core.Event())
-            else:
-                self.STEPNUM -= 1
 
 class Attack(state.State):
 
@@ -408,7 +304,7 @@ class Hit(state.State):
 
     @staticmethod
     def getattr():
-        return { 'distance' : 1.5 , 'speed' : 0.15 }
+        return { 'distance' : 3.5 , 'speed' : 0.1 }
 
     def enter(self):
         translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
@@ -430,7 +326,7 @@ class Retreat(state.State):
 
     @staticmethod
     def getattr():
-        return { 'distance' : 2.5 , 'speed' : 0.15 }
+        return { 'distance' : 1.5 , 'speed' : 0.15 }
 
     def enter(self):
         translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
@@ -446,4 +342,5 @@ class Retreat(state.State):
 
 class End(state.State):
     def enter(self):
+        self.visionSystem.buoyDetectorOff()
         self.publish(COMPLETE, core.Event())

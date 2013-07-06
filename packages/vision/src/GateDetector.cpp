@@ -62,35 +62,29 @@ void GateDetector::init(core::ConfigNode config)
     // Color filter properties
 //Kate edit: trying to edit the VisionToolV2 gui to allow sliders    
 	propSet->addProperty(config, false, "Rmin",
-                         "Rmin",
+                         "min",
                          9, &m_redminH, 0, 255);
 	propSet->addProperty(config, false, "Rmax",
-                         "Rmax",
+                         "max",
                          127, &m_redmaxH, 0, 255);
 	propSet->addProperty(config, false, "Gmin",
-                         "Gmin",
+                         "min",
                          9, &m_greenminH, 0, 255);
 	propSet->addProperty(config, false, "Gmax",
-                         "Gmax",
-                         76, &m_greenmaxH, 0, 255);
+                         "max",
+                         127, &m_greenmaxH, 0, 255);
 	propSet->addProperty(config, false, "Ymin",
-                         "Ymin",
+                         "Hmin",
                          9, &m_yellowminH, 0, 255);
 	propSet->addProperty(config, false, "Ymax",
-                         "Ymax",
+                         "Hmax",
                          127, &m_yellowmaxH, 0, 255);
 	propSet->addProperty(config, false, "Smin",
                          "Smin",
-                         20, &m_minS, 0, 255);
+                         139, &m_minS, 0, 255);
 	propSet->addProperty(config, false, "Smax",
                          "Smax",
-                         70, &m_maxS, 0, 255);
-	propSet->addProperty(config, false, "diff",
-                         "diff",
-                         100, &m_maxdiff, 0,300);
-   	propSet->addProperty(config, false, "thresholdwithred",
-                         "thresholdwithred",
-                         true, &m_checkRed);
+                         255, &m_maxS, 0, 255);
 
 }
     
@@ -194,10 +188,7 @@ Mat GateDetector::processImageColor(Image*input)
 	//imshow("Blue",erosion_dst_blue);
 
 	//lets AND the blue and the green images
-	if (m_checkRed == true)
-		bitwise_and(erosion_dst_blue,erosion_dst_red, erosion_dst,noArray());
-	else
-		bitwise_and(erosion_dst_blue,erosion_dst_green, erosion_dst,noArray());
+	bitwise_and(erosion_dst_blue,erosion_dst_red, erosion_dst,noArray());
 	//imshow("AND",erosion_dst);
 
 	return(erosion_dst);
@@ -224,7 +215,8 @@ void GateDetector::processImage(Image* input, Image* output)
 
 	input->setData(img_whitebalance.data,false);
 	frame->copyFrom(input);
-
+    
+    std::cerr<<"will i publish?"<<std::endl;
 	if (gate.m_found==TRUE)
 		publishFoundEvent(gate.finalPair);
 
@@ -275,6 +267,7 @@ void GateDetector::processImage(Image* input, Image* output)
 
 void GateDetector::publishFoundEvent(foundLines::parallelLinesPairs finalPairs)
 {
+    std::cerr<<"publishing"<<std::endl;
     static math::Degree xFOV = VisionSystem::getFrontHorizontalFieldOfView();
     static math::Degree yFOV = VisionSystem::getFrontVerticalFieldOfView();
     static double xPixelWidth = VisionSystem::getFrontHorizontalPixelResolution();
@@ -314,9 +307,7 @@ void GateDetector::publishFoundEvent(foundLines::parallelLinesPairs finalPairs)
       publish(EventType::GATE_FOUND, event);
 };
 
-int GateDetector::getmaxdiff(void)
-{
-	return(m_maxdiff);
-};
+
+
 } // namespace vision
 } // namespace ram

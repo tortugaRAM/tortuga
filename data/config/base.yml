@@ -21,7 +21,7 @@ TimerManager:
     type: TimerManager
     depends_on: ["EventHub"]
 
-# Object that creates the vehicle interface
+# Object that creates the vehicle interfacepackages/vehicle/src/
 Vehicle:
     # The full name of the class to instantiate in this case its a wrapper
     # for the base C++ vehicle
@@ -35,6 +35,10 @@ Vehicle:
     MagBoomName: MagBoom
 
     TopThrusterThrottle: 0.6
+
+    extraThrusterLocation: [ 0, .55, .21 ]
+    extraThrusterLocation: [ 0, 1, 0 ]
+    extraThrusterForce: 52.25
 
     # The list of devices to create for the vehicle
     Devices:
@@ -143,7 +147,7 @@ Vehicle:
             address: 3
             calibration_factor: 25
             direction: -1
-            location: [0.4, 0.00, 0.00]
+            location: [0.33, 0.00, 0.00] #[0.4, 0.00, 0.00]
 
         AftThruster:
             depends_on: ['SensorBoard']
@@ -152,7 +156,7 @@ Vehicle:
             address: 5
             calibration_factor: 25
             direction: -1
-            location: [-0.40, 0.00, 0.00]
+            location: [-0.545, 0.00, 0.00] #[-0.40, 0.00, 0.00]
 
         TopThruster:
             depends_on: ['SensorBoard']
@@ -161,7 +165,7 @@ Vehicle:
             address: 2
             calibration_factor: 25
             direction: 1
-            location: [0.09, -0.0, -0.13]
+            location: [.04, -0.0, -.21] #[0.09, -0.0, -0.13]
 
         BottomThruster:
             depends_on: ['SensorBoard']
@@ -169,7 +173,11 @@ Vehicle:
             address: 4
             calibration_factor: 25
             direction: -1
-            location: [0.09, 0.0, 0.10]
+            location: [.04, 0.0, .17] #[0.09, 0.0, 0.10]
+
+        ExtraThruster:
+            depends_on: ['SensorBoard']
+            type: SBExtraThruster
             
         MagBoom:
             type: IMU
@@ -178,7 +186,7 @@ Vehicle:
             update_interval: 5
             priority: high
 
-            #from 2011-4-2011
+            # #from 2011-4-2011
             imuToVehicleRotMatrix: [[ -0.2991, -0.9530, -0.0479 ],
                                     [ -0.9541, 0.2996, -0.0020 ],
                                     [ 0.0162, 0.0451, -0.9989 ]]
@@ -186,7 +194,7 @@ Vehicle:
             magXBias: -0.026977
             magYBias: 0.019687
             magZBias: -0.064661
-
+ 
             gyroXBias: -0.006018
             gyroYBias: 0.004329
             gyroZBias: 0.004822
@@ -195,7 +203,39 @@ Vehicle:
             accelYBias: -0.019106
             accelZBias: -0.021700
 
-            localMagneticPitch: 60
+            # imuToVehicleRotMatrix: [[ -0.605202, -0.794403, -0.051528 ],
+            #                         [ -0.796057, 0.604321, 0.033007 ],
+            #                         [ 0.004919, 0.060995, -0.998126 ]]
+
+            # magXBias: -0.039748 #-0.026977
+            # magYBias: 0.062430 #0.019687
+            # magZBias: -0.034960 #-0.064661
+
+            # gyroXBias: -0.000772 #-0.006018
+            # gyroYBias: 0.019978 #0.004329
+            # gyroZBias: 0.004069 #0.004822
+
+            # accelXBias: 0.000615 #-0.003667
+            # accelYBias: -0.017866 #-0.019106
+            # accelZBias: -0.020711 #-0.021700
+            
+            # accelXBias: 0.018312
+            # accelYBias: -0.004804
+            # accelZBias: 0.021726
+            
+            # magXBias: -0.053554
+            # magYBias: 0.034507
+            # magZBias: -0.044616
+            
+            # gyroXBias: -0.007841
+            # gyroYBias: 0.003034
+            # gyroZBias: -0.000833
+
+            # imuToVehicleRotMatrix: [[ 0.8850, -0.4654, 0.0151 ],
+            #                         [ 0.4656, 0.8847, -0.0203 ],
+            #                         [ -0.0039, 0.0250, -0.9979 ]]
+                                    
+#            localMagneticPitch: 60
 
         IMU:
             type: IMU
@@ -206,11 +246,11 @@ Vehicle:
             imuToVehicleRotMatrix: [[ -0.6234, 0.0290, 0.7814 ],
                                     [ 0.7818, 0.0102, 0.6234 ],
                                     [ 0.0101, 0.9995, -0.0291 ]]
-
+ 
             magXBias: -0.130466
             magYBias: -0.491657
             magZBias: 0.045481
-
+ 
             gyroXBias: 0.022581
             gyroYBias: -0.027298
             gyroZBias: -0.036842
@@ -219,9 +259,41 @@ Vehicle:
             accelYBias: -0.029437
             accelZBias: 0.028014
 
+            # imuToVehicleRotMatrix: [[ 0.949761, -0.040167, -0.310387 ],
+            #                         [ -0.311338, -0.019957, -0.950090 ],
+            #                         [ -0.031968, 0.998994, -0.031460 ]]
+
+            # magXBias: 0.408743 #-0.130466
+            # magYBias: -0.381374 #-0.491657
+            # magZBias: -0.251483 #0.045481
+
+            # gyroXBias: -0.441184 #0.022581
+            # gyroYBias: -0.024743 #-0.027298
+            # gyroZBias: -0.048570 #-0.036842
+
+            # accelXBias: -0.019909 #-0.019185
+            # accelYBias: -0.040147 #-0.029437
+            # accelZBias: 0.026331 #0.028014
+
+            # accelXBias: 0.033962
+            # accelYBias: 0.008538
+            # accelZBias: -0.025377
+
+            # magXBias: 0.061719
+            # magYBias: 0.197593
+            # magZBias: 0.456503
+
+            # gyroXBias: -0.093938
+            # gyroYBias: 0.798228
+            # gyroZBias: -0.021004
+
+            # imuToVehicleRotMatrix: [[ -0.222725, 0.295999, -0.928859 ],
+            #                         [ -0.409030, 0.836498, 0.364645 ],
+            #                         [ 0.884923, 0.461146, -0.065236 ]]
+
             # Set me to zero to ignore mag.
             #magCorruptThresh: 0.0
-            localMagneticPitch: 60
+            #localMagneticPitch: 60
 
         DVL:
             type: DVL
@@ -260,6 +332,12 @@ Logging:
         ControlLog:
             type: File
             fileName: control.log
+            Layout:
+                type: Pattern
+                pattern: "%m %r%n"
+        RotationalControlLog:
+            type: File
+            fileName: rotationalControl.log
             Layout:
                 type: Pattern
                 pattern: "%m %r%n"
@@ -302,6 +380,12 @@ Logging:
         StEstIMULog:
             type: File
             filename: stEstIMU.log
+            Layout:
+                type: Pattern
+                pattern: "%m %r%n"
+        StEstBuoyLog:
+            type: File
+            filename: stEstBuoy.log
             Layout:
                 type: Pattern
                 pattern: "%m %r%n"
@@ -356,6 +440,8 @@ Logging:
             appenders: ['PowerLog'] #,'Console']
         Controller:
             appenders: ['ControlLog'] #'Console']
+        RotationalController:
+            appenders: ['RotationalControlLog']
         IMU:
             appenders: ['IMULog'] #'Console']
         DVL:
@@ -366,6 +452,8 @@ Logging:
             appenders: ['StEstDepthLog']
         StEstIMU:
             appenders: ['StEstIMULog']
+        StEstBuoy:
+            appenders: ['StEstBuoyLog', 'Console']
         BuoyDetector:
             appenders: ['BuoyDetectorLog']
         LoversLaneDetector:
@@ -388,20 +476,20 @@ StateEstimator:
     DepthEstimationModule:
         degree: 3
         windowSize: 81
-    # GreenBuoy:
-    #     location: [0, 0, 8]
-    #     covariance: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-    #     attackHeading: 0
-    # GreenBuoyEstimationModule:
-    #     numParticles: 200
-    # YellowBuoy:
-    #     location: [0, 0, 8]
-    #     covariance: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-    #     attackHeading: 0
-    # YellowBuoyEstimationModule:
-    #     numParticles: 200
+    GreenBuoy:
+        location: [0, 0, 2]
+        covariance: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        attackHeading: 0
+    GreenBuoyEstimationModule:
+        numParticles: 200
+    YellowBuoy:
+        location: [0, 0, 2]
+        covariance: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        attackHeading: 0
+    YellowBuoyEstimationModule:
+        numParticles: 200
     RedBuoy:
-        location: [0, 0, 8]
+        location: [0, 0, 2]
         covariance: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
         attackHeading: 0
     RedBuoyEstimationModule:
@@ -419,10 +507,20 @@ Controller:
     holdCurrentHeading: 1
     holdCurrentDepth: 1
 
-    velocityThreshold: 0.3
+    velocityThreshold: 0.05
     positionThreshold: 0.3
     depthThreshold: 0.2
     orientationThreshold: 0.3
+
+    kpvx: 30
+    kivx: 4.324
+    kdvx: 10
+    kpvy: 45
+    kivy: 6.7
+    kdvy: 10
+    kpvz: 33.5
+    kivz: 1
+    kdvz: 3
 
     TranslationalController:
         type: TrackingTranslationalController
@@ -452,6 +550,22 @@ Controller:
         dtMin: 0.005
         dtMax: 0.1
         desiredOrientation: [0, 0, 0, 1]
+        #inertia: [-0.001310938, 0.20214289, 0.6835592, 0.013848208, 3.381841, 0.20214289, 3.548379, 0.013848208, -0.0013110938]
+        #type: AdaptiveRotationalController
+        #dtMin: 0.005
+        #dtMax: 0.1 
+        #rotLambda: 4.75   # error metric 'gain'
+        #rotGamma: 0.75    # parameter adaptation rate
+        #rotK: 1.75        # analagous to kd ? NO IT IS NOT
+    #RotationalController:
+        #type: NonlinearLinearVelocityAdaptivePDRotationalController
+        #kp: 22.5
+        #kd: 2
+        #dtMin: 0.005
+        #dtMax: 0.1
+        #desiredOrientation: [0, 0, 0, 1]
+        #inertia: [-0.001310938, 0.20214289, 0.6835592, 0.013848208, 3.381841, 0.20214289, 3.548379, 0.013848208, -0.0013110938]
+        #adaptTerms: [-0.1, -0.1, 0]
 
 #Monitor:
     #type: Monitor

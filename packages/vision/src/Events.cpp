@@ -134,6 +134,11 @@ RAM_VISION_BARBED_WIREEVENT;
 static ram::core::SpecificEventConverter<ram::vision::HedgeEvent>
 RAM_VISION_HEDGEEVENT;
 
+//added 7-5-2013, experimental(by eliot)
+static ram::core::SpecificEventConverter<ram::vision::GateEvent>
+RAM_VISION_GATEEVENT;
+//end added
+
 #endif // RAM_WITH_WRAPPERS
 
 namespace ram {

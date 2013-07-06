@@ -44,6 +44,8 @@ def ensurePipeTracking(qeventHub, ai):
                                 vision.EventType.PIPE_FOUND,
                                 vision.EventType.PIPE_DROPPED)
 
+PIPE_ANGLE = 0
+
 class PipeInfo(object):
     """
     A class to hold information about the pipe for tracking it
@@ -244,6 +246,9 @@ class PipeFollowingState(PipeTrackingState):
         pipeData = self.ai.data['pipeData']
         angle = event.angle
 
+        global PIPE_ANGLE
+        PIPE_ANGLE = float(event.angle)
+
         goodPipe = PipeTrackingState.PIPE_FOUND(self, event)
         
         # If it is not vetoed
@@ -312,7 +317,8 @@ class PipeFollowingState(PipeTrackingState):
         self._ignoreEvents = False
         PipeTrackingState.enter(self)
         
-        self._pipe = PipeInfo(0, 0, 0)
+        global PIPE_ANGLE
+        self._pipe = PipeInfo(0, 0, PIPE_ANGLE)
 
         speedGain = self._config.get('speedGain', 7)
         dSpeedGain = self._config.get('dSpeedGain', 1)
@@ -353,6 +359,8 @@ class PipeFollowingState(PipeTrackingState):
                                                      frame = Frame.LOCAL)
 
         self.motionManager.setMotion(yawMotion, translateMotion)
+
+        print 'Going!  Angle is: ' + str(self._pipe.getAngle())
 
     def changedPipe(self):
         # A stupid solution. Stop current motion and restart it when
@@ -492,7 +500,7 @@ class Searching(PipeTrackingState, state.ZigZag):
         
         trans = PipeTrackingState.transitions(Searching,
             { vision.EventType.PIPE_FOUND : Seeking })
-        trans.update(state.ZigZag.transitions(End, Searching))
+        trans.update(state.ZigZag.transitions(Searching))
         
         return trans;
 
@@ -501,6 +509,8 @@ class Searching(PipeTrackingState, state.ZigZag):
         return state.ZigZag.getattr()
 
     def PIPE_FOUND(self, event):
+        global PIPE_ANGLE
+        PIPE_ANGLE = float(event.angle)
         currentID = self.ai.data['pipeData'].setdefault('currentID', event.id)
         if event.id == currentID:
             self.ai.data['lastPipeEvent'] = event
@@ -614,6 +624,9 @@ class AlongPipe(PipeFollowingState):
             angle = event.angle
         event.angle = angle
 
+        global PIPE_ANGLE
+        PIPE_ANGLE = float(event.angle)
+
         # This must be called after the event is changed
         PipeFollowingState.PIPE_FOUND(self, event)
 
@@ -676,6 +689,7 @@ class BetweenPipes(PipeTrackingState):
         forwardSpeed = self._config.get('forwardSpeed', 0.15)
         self.timer = self.timerManager.newTimer(BetweenPipes.LOST_PATH, 
                                                 forwardTime)
+
         self.timer.start()
         
         translateTrajectory = motion.trajectories.Vector2CubicTrajectory(

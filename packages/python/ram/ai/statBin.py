@@ -108,7 +108,7 @@ class Strafe(state.State):
 
     @staticmethod
     def getattr():
-        return { 'distanceLeft' : 3 , 'distanceRight' : 3,  'speed' : 0.15,
+        return { 'distanceLeft' : 3 , 'distanceRight' : 3,  'speed' : 0.1,
                  'foundMin' : 10}
 
     def enter(self):
@@ -194,7 +194,7 @@ class Align(state.State):
 
     @staticmethod
     def getattr():
-        return { 'speed' : 0.15 }
+        return { 'speed' : 0.1 }
 
     def enter(self):
         if( len(self.ai.data['symbolList']) == 0 ):
@@ -261,7 +261,8 @@ class Center(state.State):
 
     @staticmethod
     def getattr():
-        return { 'speed' : 0.2 , 'diveRate' : 0.2 , 'distance' : 1 ,
+        return { 'speed' : 0.15 , 'diveRate' : 0.2 , 'xdistance' : .5 ,
+                 'ydistance' : 0.15,
                  'xmin' : -0.05 , 'xmax' : 0.05 , 
                  'ymin' : -0.05 , 'ymax' : 0.05,
                  'timeout' : 20}
@@ -325,10 +326,10 @@ class Center(state.State):
             #print("Buoy X: " + str(event.x))
             if(event.x <= self._xmin):
                 #print("Moving left to compensate")
-                self.movex(-self._distance)
+                self.movex(-self._xdistance)
             elif(event.x >= self._xmax):
                 #print("Moving right to compensate")
-                self.movex(self._distance)
+                self.movex(self._xdistance)
 
             self.STEPNUM += 1
         
@@ -343,9 +344,9 @@ class Center(state.State):
 
         elif(self.STEPNUM == 2):
             if(event.y <= self._ymin):
-                self.movey(self._distance)
+                self.movey(self._ydistance)
             elif(event.y >= self._ymax):
-                self.movey(-self._distance)
+                self.movey(-self._ydistance)
 
             self.STEPNUM += 1
 

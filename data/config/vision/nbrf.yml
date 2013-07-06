@@ -53,7 +53,7 @@ OrangePipeDetector:
     minPixelsFound: 1500
     erodeIterations: 1
 BinDetector:
-    symbolDetector: BasicWeaponDetector
+    symbolDetector: BasicGladiatorDetector
     logSymbolImages: false
     centeredLimit: 0.2
     #sameBinThreshold: 0.2
@@ -63,56 +63,24 @@ BinDetector:
     whiteMaskMinimumPercent: 15
     whiteMaskMinimumIntensity: 137
     redMinRValue: 70
-    filtblackCMax: 19
+    filtblackCMax: 255
     filtblackCMin: 0
     filtblackHMax: 255
     filtblackHMin: 0
-    filtblackLMax: 81
+    filtblackLMax: 124
     filtblackLMin: 0
-    filtredCMax: 255
-    filtredCMin: 20
-    filtredHMax: 32
-    filtredHMin: 236
+    filtredCMax: 136
+    filtredCMin: 0
+    filtredHMax: 27
+    filtredHMin: 0
     filtredLMax: 255
-    filtredLMin: 15
+    filtredLMin: 0
     filtwhiteCMax: 255
     filtwhiteCMin: 0
-    filtwhiteHMax: 103
-    filtwhiteHMin: 158
+    filtwhiteHMax: 255
+    filtwhiteHMin: 0
     filtwhiteLMax: 255
-    filtwhiteLMin: 147
-    weaponMinAspectRatioAxe: 2.30
-    weaponMaxAspectRatioAxe: 2.625
-    weaponMinSideFillRatioAxe: 1.21
-    weaponMaxSideFillRatioAxe: 1.912
-    weaponMinCornerFillAvgAxe: 0.17
-    weaponMaxCornerFillAvgAxe: 0.375
-    weaponMinMiddleFillAvgAxe: 0.11
-    weaponMaxMiddleFillAvgAxe: 0.17
-    weaponMinAspectRatioMachete: 2.56
-    weaponMaxAspectRatioMachete: 3.76
-    weaponMinSideFillRatioMachete: 2.23
-    weaponMaxSideFillRatioMachete: 3.64
-    weaponMinCornerFillAvgMachete: 0.12
-    weaponMaxCornerFillAvgMachete: 0.35
-    weaponMinMiddleFillAvgMachete: 0.27
-    weaponMaxMiddleFillAvgMachete: 0.39
-    weaponMinAspectRatioClippers: 2.22
-    weaponMaxAspectRatioClippers: 2.58
-    weaponMinSideFillRatioClippers: 1.01
-    weaponMaxSideFillRatioClippers: 1.21
-    weaponMinCornerFillAvgClippers: 0.08
-    weaponMaxCornerFillAvgClippers: 0.35
-    weaponMinMiddleFillAvgClippers: 0.22
-    weaponMaxMiddleFillAvgClippers: 0.30
-    weaponMinAspectRatioHammer: 2.30
-    weaponMaxAspectRatioHammer: 2.95
-    weaponMinSideFillRatioHammer: 1.27
-    weaponMaxSideFillRatioHammer: 4.79
-    weaponMinCornerFillAvgHammer: 0.038
-    weaponMaxCornerFillAvgHammer: 0.243
-    weaponMinMiddleFillAvgHammer: 0.16
-    weaponMaxMiddleFillAvgHammer: 0.24
+    filtwhiteLMin: 125
 DuctDetector:
     minRedOverGreen: 0.5
     maxRedOverGreen: 1.5
