@@ -1,5 +1,3 @@
-
-
 import math as m
 import ram.ai.state as state
 import ram.motion as motion
