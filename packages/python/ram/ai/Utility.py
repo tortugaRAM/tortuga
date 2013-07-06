@@ -30,7 +30,7 @@ def dive(you, depth, rate):
 #hold the current position in xy
 def freeze(you):
     traj = motion.trajectories.Vector2CubicTrajectory(math.Vector2.ZERO,math.Vector2.ZERO)
-    dive(you, 0, 0.15)
+    dive(you, you.stateEstimator.getEstimatedDepth(), 0.15)
     mot = motion.basic.Translate(traj,Frame.LOCAL)
     you.motionManager.setMotion(mot)
 
@@ -39,7 +39,6 @@ def freeze(you):
 #it sends a done event when it finishes
 #this publishes a done event when finished
 class MotionState(state.State):
-
     #dive to a specified depth
     def dive(self, depth, rate):
         # Compute trajectories
@@ -51,21 +50,27 @@ class MotionState(state.State):
         # Dive
         diveMotion = motion.basic.ChangeDepth(
             trajectory = diveTrajectory)
+            initialValue = you.stateEstimator.getEstimatedDepth(),
+            finalValue = depth,
+            initialRate = you.stateEstimator.getEstimatedDepthRate(),
+            avgRate = diveRate)
+        # Dive
+        diveMotion = motion.basic.ChangeDepth(trajectory = diveTrajectory)
         self.motionManager.setMotion(diveMotion)
         self._mYaw = False
         
 #translate locally x,y at rate rate
     def translate(self,x,y,rate):
-         translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
+        translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
             initialValue = math.Vector2.ZERO,
             finalValue = math.Vector2(y, x),
             initialRate = self.stateEstimator.getEstimatedVelocity(),
             avgRate = rate)
-         translateMotion = motion.basic.Translate(
+        translateMotion = motion.basic.Translate(
             trajectory = translateTrajectory,
             frame = Frame.LOCAL)
-         self.motionManager.setMotion(translateMotion)
-         self._mYaw = False
+        self.motionManager.setMotion(translateMotion)
+        self._mYaw = False
             
 #rotate to global orientation of deg degrees, ending after time t has passed
     def yawGlobal(self,deg,t):
@@ -77,9 +82,9 @@ class MotionState(state.State):
             initialRate = self.stateEstimator.getEstimatedAngularRate(),
             finalRate = math.Vector3.ZERO)
         yawMotion = motion.basic.ChangeOrientation(yawTrajectory)
-        self.timer = self.timerManager.newTimer(YAWED, t)
-        self.timer.start()
         self.motionManager.setMotion(yawMotion)
+        self.timer = self.timerManager.newTimer(YAWED, self._delay)
+        self.timer.start()
         self._mYaw = True
             
 #rotate to local orientation of deg degrees, ending after time t has passed
@@ -92,19 +97,16 @@ class MotionState(state.State):
             initialRate = self.stateEstimator.getEstimatedAngularRate(),
             finalRate = math.Vector3.ZERO)
         yawMotion = motion.basic.ChangeOrientation(yawTrajectory)
-        self.timer = self.timerManager.newTimer(YAWED, t)
-        self.timer.start()
         self.motionManager.setMotion(yawMotion)
+        self.timer = self.timerManager.newTimer(YAWED, self._delay)
+        self.timer.start()
         self._mYaw = True
         
     def FINISHED(self,event):
-        if(self._mYaw == False):
-            self.publish(DONE,core.Event())
-        # else:
-        #    self.YAWED(self, event)
-
+            if(self._mYaw == False):
+                self.publish(DONE,core.Event())
     def YAWED(self,event):
-        self.publish(DONE,core.Event())
+            self.publish(DONE,core.Event())
             
 #end motionState
 
@@ -187,10 +189,4 @@ class FiniteState(state.State):
 
 
 
-
-
-        
-
-   
-        
 
