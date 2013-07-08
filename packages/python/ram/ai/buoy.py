@@ -22,19 +22,22 @@ import ram.timer
 from ram.motion.basic import Frame
 
 import ram.ai.Approach as approach
-import ram.ai.Utiltiy as utility
+import ram.ai.Utility as utility
 
 COMPLETE = core.declareEventType('COMPLETE')
 
 # ---- global vars
 global PreBumpLoc
-global StartLoc
+global StartPos
+global StartDepth
 global leftBuoyColor
 global rightBuoyColor
 global CorrectColor
 global PreLostLoc
 # ----------------
 
+global testCounter
+testCounter = 0
 
 class Start(state.State):
 
@@ -47,6 +50,7 @@ class Start(state.State):
         return { 'diveRate' : 0.3 , 'speed' : 0.3 }
 
     def enter(self):
+
         self.visionSystem.buoyDetectorOn()
 
         buoyDepth = self.ai.data['config'].get('buoyDepth', -1)
@@ -88,9 +92,73 @@ class Search(state.ZigZag):
 
     @staticmethod
     def transitions():
-        return { motion.basic.MotionManager.FINISHED : Search ,
-                 vision.EventType.BUOY_FOUND : state.State , 
+        return { motion.basic.MotionManager.FINISHED : Search,
+                 vision.EventType.BUOY_FOUND : state.State, 
                  state.ZigZag.DONE : End }
+
+#
+# START OF APPROACHING THE BUOY
+#
+
+
+#
+# END OF APPROACH
+#
+
+#
+# START OF STRAFE
+#
+
+
+#
+# END STRAFE
+#
+
+
+#
+# START OF RETURN STATE
+#
+class ReturnToStartingPos(state.State):
+
+    @staticmethod
+    def transitions():
+        return { motion.basic.MotionManager.FINISHED : DecisionMaking }
+
+    @staticmethod
+    def getattr():
+        return { 'speed' : 0.15 }
+
+    def enter(self):
+        global StartPos
+        global StartDepth
+        # translation motions
+        transTraj = motion.trajectories.Vector2CubicTrajectory(
+            initialValue = self.stateEstimater.getEstimatedPos(),
+            finalValue = StartPos,
+            initialRate = self.stateEstimator.getEstimatedVelocity(),
+            avgRate = self._speed)
+        transMot = motion.basic.Translate(
+            trajectory = transTraj,
+            frame = Frame.GLOBAL)
+
+        # dive motions
+        diveTraj = motioin.trajectories.ScalarCubicTrajectory(
+            initialValue = self.stateEstimater.getEstimatedDepth(),
+            finalValue = StartDepth,
+            initialRate = sefl.stateEstimator.getEstimatedRate(),
+            avgRate = self._speed)
+        diveMot = motion.basic.ChangeDepth(
+            trajectory = diveTraj)
+
+        self.motionManager.setMotion(XYMotion, diveMotion)
+
+    def exit(self):
+        utility.freeze(self)
+        self.motionManager.stopCurrentMotion()
+
+#
+# END OF RETURN STATE
+#
 
 #
 # START OF CENTERING STATE
@@ -100,7 +168,7 @@ class Centering(approach.XZCenter):
     @staticmethod
     def transitions():
         return { approach.DONE : ShouldIBump,
-                 vision.EventType.BUOY_LOST : Reacquiring,
+                 vision.EventType.BUOY_LOST : ReacquireBuoy,
                  vision.EventType.BUOY_FOUND : Centering }
 
     @staticmethod
@@ -129,7 +197,7 @@ class Centering(approach.XZCenter):
 #
 
 #
-# START OF DECISION MAKING
+# START OF BUMP DECIDER
 #
 class ShouldIBump(state.State):
 
@@ -146,14 +214,22 @@ class ShouldIBump(state.State):
     def BUOY_FOUND(self, event):
         global CorrectColor
         global PreBumpLoc
-        CorrectColor = WantedColor
         CurrentColor = str(event.color).lower()
+        # -- TEST
+        global testCounter
+        if testCounter < 3:
+            testCounter += 1
+            CorrectColor = 'blue'
+        else :
+            CorrectColor = 'red'
+        # -- TEST
+
         if CorrectColor == CurrentColor:
             self.publish(NOPE, core.Event())
         else:
             self.publish(BUMP, core.Event())
 #
-# END OF DECISION MAKING
+# END OF BUMP DECIDER
 #
 
 #
@@ -188,11 +264,12 @@ class Retreat(utility.MotionState):
 
     @staticmethod
     def transitions():
-        return { motion.basic.MotionManager.FINISHED : CenterOnBuoy }
+        return { 
+            motion.basic.MotionManager.FINISHED : Retreat }
 
     @staticmethod
     def getattr():
-        return { 'speed' : 0.15, 'distance' : 1.5 }
+        return { 'speed' : 0.15, 'distance' : -1.5 }
 
     def enter(self):
         self.translate(self._distance, 0, self._speed)
@@ -203,4 +280,5 @@ class Retreat(utility.MotionState):
 
 class End(state.State):
     def enter(self):
+        self.visionSystem.buoyDetectorOff()
         self.publish(COMPLETE, core.Event())
