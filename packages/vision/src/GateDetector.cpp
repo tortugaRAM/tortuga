@@ -47,6 +47,7 @@ GateDetector::GateDetector(Camera* camera) :
 
 void GateDetector::init(core::ConfigNode config)
 {
+	m_found = false;
 	frame = new OpenCVImage(640,480);
 	gateX=0;
 	gateY=0;
@@ -82,9 +83,16 @@ void GateDetector::init(core::ConfigNode config)
 	propSet->addProperty(config, false, "Smin",
                          "Smin",
                          139, &m_minS, 0, 255);
+                         90, &m_minS, 0, 255);
 	propSet->addProperty(config, false, "Smax",
                          "Smax",
                          255, &m_maxS, 0, 255);
+	propSet->addProperty(config, false, "diff",
+                         "diff",
+                         100, &m_maxdiff, 0,300);
+   	propSet->addProperty(config, false, "thresholdwithred",
+                         "thresholdwithred",
+                         true, &m_checkRed);
 
 }
     
@@ -132,22 +140,26 @@ return(m_redmaxH);
 }
 Mat GateDetector::processImageColor(Image*input)
 {
+
 	int red_maxH = m_redmaxH;
 	int red_minH = m_redminH;
 	int green_minH = m_greenminH;
 	int green_maxH = m_greenmaxH;
-	int yellow_minH = m_yellowminH;
-	int yellow_maxH = m_yellowmaxH;
+	//int yellow_minH = m_yellowminH;
+	//int yellow_maxH = m_yellowmaxH;
 	//I dont think theres a reason for these to be doubles
 	double minS = (double)m_minS;
 	double maxS = (double)m_maxS;
 
+	printf("\n saving img from input");
 	Mat img = input->asIplImage();
-	Mat img_hsv;
-
 	img_whitebalance = WhiteBalance(img);
+	printf("\n processImageColor");
+	cv::Mat img_hsv(img_whitebalance.size(),CV_8UC1);
+
+	printf("\n entering whitebalance");
 	cvtColor(img_whitebalance,img_hsv,CV_BGR2HSV);
-		
+	printf("\n converting img_whitebalance");
 	//use blob detection to find gate
 	//find left and right red poles - vertical poles
 	vector<Mat> hsv_planes;
@@ -156,37 +168,32 @@ Mat GateDetector::processImageColor(Image*input)
 	//first take any value higher than max and converts it to 0
 	//red is a special case because the hue value for red are 0-10 and 170-1980
 	//same filter as the other cases followed by an invert
-	blobfinder blob;
-	Mat img_green =blob.OtherColorFilter(hsv_planes,green_minH,green_maxH);
-	Mat img_yellow =blob.OtherColorFilter(hsv_planes,yellow_minH,yellow_maxH);
-	Mat img_red =blob.RedFilter(hsv_planes,red_minH,red_maxH);
-	Mat img_blue =blob.SaturationFilter(hsv_planes,minS,maxS);
-	//imshow("green",img_green);
-	//imshow("yellow",img_yellow);
-	//imshow("red",img_red);
-	//imshow("blue",img_blue);
 
-	//For attempting to use with canny
+	cv::Mat img_red(img_whitebalance.size(),CV_8UC1);
+	cv::Mat img_green(img_whitebalance.size(),CV_8UC1);
+	cv::Mat img_blue(img_whitebalance.size(),CV_8UC1);
+
+	cv::Mat erosion_dst(img_whitebalance.size(),CV_8UC1);
+	Mat erosion_dst_red(img_whitebalance.size(),CV_8UC1);
+	Mat erosion_dst_green(img_whitebalance.size(),CV_8UC1);
+	Mat erosion_dst_blue(img_whitebalance.size(),CV_8UC1);
+
+	//filter images
+	blobfinder blob;
+	//set up erode
 	int erosion_type = 0; //morph rectangle type of erosion
 	int erosion_size = 2;
 	Mat element = getStructuringElement( erosion_type,
                                        Size( 2*erosion_size + 1, 2*erosion_size+1 ),
                                        Point( erosion_size, erosion_size ) );
+	//saturation filter
+	img_blue =blob.SaturationFilter(hsv_planes,minS,maxS); //saturation filter
+	printf("\n colorfilter");
 
-  	/// Apply the erosion operation
-	Mat erosion_dst,erosion_dst_red, erosion_dst_green, erosion_dst_blue;
-  	erode(img_red, erosion_dst_red, element );
-	//imshow("Red",erosion_dst_red);
-
-  	erode(img_green, erosion_dst_green, element );
-	//imshow("Green",erosion_dst_green);
-
-  	erode(img_yellow, erosion_dst, element );
-	//imshow("Yellow",erosion_dst);
-
+  	/// Apply the erosion operation  	
   	erode(img_blue, erosion_dst_blue, element );
-	//imshow("Blue",erosion_dst_blue);
 
+	printf("\nerode");
 	//lets AND the blue and the green images
 	bitwise_and(erosion_dst_blue,erosion_dst_red, erosion_dst,noArray());
 	//imshow("AND",erosion_dst);
@@ -199,23 +206,50 @@ void GateDetector::processImage(Image* input, Image* output)
 //KATE
 	Mat imgprocess = processImageColor(input);
 	//img_whitebalance = img;
-	Mat img = input->asIplImage();
+	//Mat img = input->asIplImage();
 	//imshow("input image", img);
 
 	//imshow("process",imgprocess);
 	//IplImage* tempImage=0;
-	img_whitebalance = WhiteBalance(img);
-	gate.m_found = FALSE;
-	Mat img_red = gate.gateblob(imgprocess,img_whitebalance); //built in redfilter
+	//img_whitebalance = WhiteBalance(img);
+
+	foundLines::parallelLinesPairs final= gate.gateblob(imgprocess,img_whitebalance); //built in redfilter
 	//Mat img_red = gate.hedgeblob(img_whitebalance);  //built in green filter
 
 	//imshow("results",img_red);
 	//img_gate = gate.rectangle(img_red, img_whitebalance);
 	//cvtColor(img_whitebalance,img_whitebalance,CV_BGR2RGB);
+	printf("\n done with gateblob");
 
+	if (final.foundtwosides == 1 || final.foundHorizontal == 1)
+	{
+		m_found = TRUE;
+	}
+	else if  (m_found == TRUE)
+	{ //found it before but cannot find it now- lostEvent
+		m_found = FALSE;
+		if (m_checkRed == true)
+			publishLostEventBuoy(Color::RED);
+		else
+			publishLostEventBuoy(Color::GREEN);
+		
+        }
+
+	if (m_found==TRUE)
+	{
+		if (m_checkRed == true)
+			publishFoundEventBuoy(final,Color::RED);
+		else
+			publishFoundEventBuoy(final,Color::GREEN);
+
+		//printf("\n gate found publishing event");
+	}
+
+	printf("\n outputting!");
+	cvtColor(img_whitebalance,img_whitebalance,CV_BGR2RGB);
 	input->setData(img_whitebalance.data,false);
 	frame->copyFrom(input);
-    
+
     std::cerr<<"will i publish?"<<std::endl;
 	if (gate.m_found==TRUE)
 		publishFoundEvent(gate.finalPair);
@@ -224,6 +258,10 @@ void GateDetector::processImage(Image* input, Image* output)
 
 	if(output)
 	    {
+		//imshow("Blue",erosion_dst_blue);
+		//imshow("Green",erosion_dst_green);
+		//imshow("Red",erosion_dst_red);
+		//imshow("AND",erosion_dst);
 		output->copyFrom(frame);
 		//if (m_debug >= 1) {
 		//    output->copyFrom(frame);
@@ -264,6 +302,15 @@ void GateDetector::processImage(Image* input, Image* output)
 */
 	
 };
+
+void GateDetector::publishLostEventBuoy(Color::ColorType color)
+{
+    BuoyEventPtr event(new BuoyEvent());
+    event->color = color;
+    
+    publish(EventType::GATE_LOST, event);
+}
+
 
 void GateDetector::publishFoundEvent(foundLines::parallelLinesPairs finalPairs)
 {
@@ -306,8 +353,6 @@ void GateDetector::publishFoundEvent(foundLines::parallelLinesPairs finalPairs)
 
       publish(EventType::GATE_FOUND, event);
 };
-
-
 
 } // namespace vision
 } // namespace ram

@@ -45,6 +45,17 @@ namespace vision {
 
 
 class blobfinder {
+
+		struct foundblob
+		{
+			double centerx;
+			double centery;
+			double range;
+			int minX, minY, maxX,maxY;
+			int color;
+			int position;
+			int frames;
+		};
 private:
 		
 
@@ -59,22 +70,13 @@ private:
 		vector<KeyPoint> _keypoints_red;
 		vector<KeyPoint> _keypoints_green;
 		vector<KeyPoint> _keypoints_yellow;     
+
 public:
-		struct foundblob
-		{
-			double centerx;
-			double centery;
-			double range;
-			int minX, minY, maxX,maxY;
-			int color;
-			int position;
-			int frames;
-		};
+
 	foundblob yellow;
 
         blobfinder();
 	Mat DetectBuoys(Mat img_whitebalance,ColorFilter *m_redFilter, ColorFilter *m_greenFilter, ColorFilter *m_yellowFilter);
-	void FindWindow(Image* input, Mat output,ColorFilter *m_redFilter, ColorFilter *m_greenFilter, ColorFilter *m_yellowFilter);
 	foundblob getKeyPoints(KeyPoint blob);
 	unsigned int getYellowSize();
 	unsigned int getRedSize();
@@ -84,7 +86,8 @@ public:
 	vector<KeyPoint> getGreen();
 	Mat RedFilter(vector<Mat> hsv_planes,int red_minH, int red_maxH);
 	Mat OtherColorFilter(vector<Mat> hsv_planes,int minH, int maxH);
-	Mat SaturationFilter(vector<Mat> hsv_planes,double minH, double maxH);
+	Mat SaturationFilter(vector<Mat> hsv_planes,int minS, int maxS);
+	Mat LuminanceFilter(vector<Mat> hsv_planes,int minL,int maxL);
 
 
 
