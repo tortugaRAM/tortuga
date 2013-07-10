@@ -81,6 +81,7 @@ class State(object):
         @warning: Only valid when the object is created by a Machine object
         """
         raise 
+    
 
 class FindAttempt(State):
     """
@@ -284,10 +285,10 @@ class Center(State):
 
     @staticmethod
     def getattr():
-        return { 'speed' : 0.05 , 'diveRate' : 0.15 , 'yawRate' : 0.1 ,
-                 'distance' : 4 , 'timeout' : 300 ,
+        return { 'speed' : 0.15 , 'diveRate' : 0.15 , 'distance' : 4 ,
                  'xmin' : -0.05 , 'xmax' : 0.05 , 
-                 'ymin' : -0.05 , 'ymax' : 0.05 }
+                 'ymin' : -0.05 , 'ymax' : 0.05,
+                 'timeout' : 30 }
 
     def move(self, distance):
         if not self.move_again:
@@ -340,53 +341,44 @@ class Center(State):
 
     def update(self, event):
         if(self.STEPNUM == 0):
-
+            #print("Buoy X: " + str(event.x))
             if(event.x <= self._xmin):
+                #print("Moving left to compensate")
                 self.move(-self._distance)
-
             elif(event.x >= self._xmax):
+                #print("Moving right to compensate")
                 self.move(self._distance)
 
             self.STEPNUM += 1
         
         elif(self.STEPNUM == 1):
-
             if(event.x > self._xmin and event.x < self._xmax):
+                #print("X Axis Aligned")
                 self.motionManager.stopCurrentMotion()
                 self.move_again = True
                 self.STEPNUM += 1
-
             else:
                 self.STEPNUM -= 1
-                
+
         elif(self.STEPNUM == 2):
+            #print("Buoy Y: " + str(event.y))
             if(event.y <= self._ymin):
+                #print("Moving down to compensate")
                 self.dive(self._distance)
             elif(event.y >= self._ymax):
+                #print("Moving up to compensate")
+
                 self.dive(-self._distance)
 
             self.STEPNUM += 1
 
         elif(self.STEPNUM == 3):
             if(event.y > self._ymin and event.y < self._ymax):
+                #print("Y Axis Aligned, All Done")
                 self.motionManager.stopCurrentMotion()
-                self.move_again = True
-                self.STEPNUM += 1
+                self.publish(Center.CENTERED, core.Event())
             else:
                 self.STEPNUM -= 1
-
-        else:
-            if(event.x > self._xmin/2 and event.x < self._xmax/2):
-                self.controller.holdCurrentOrientation()
-                self.publish(Center.CENTERED, core.Event())
-                return
-
-            elif(event.x <= self._xmin):
-                self.controller.yawVehicle(self._yawRate, 0.1)
-
-            elif(event.x >= self._xmax):
-                self.controller.yawVehicle(-self._yawRate, 0.1)
-
 
 class Branch(object):
     """
