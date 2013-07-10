@@ -1,4 +1,3 @@
-
 import math as m
 import ext.control as control
 import ram.ai.state as state
@@ -54,7 +53,7 @@ class VSMotion(state.State):
         if(self.end_cond(event) == True):
             self.stop()
             self.publish(DONE,core.Event())
-        else:            
+        else:
             self.moveX(self.decideX(event),event)
             self.moveY(self.decideY(event),event)
             self.moveZ(self.decideZ(event),event)
@@ -86,8 +85,8 @@ class VSDirect2ControlConst(VSDirect2Control):
 class ForwardXYCenter(VSDirect2ControlConst):
     @staticmethod
     def getattr():
-        return { 'fDisp' : .01 ,  'sDisp' : .02 ,
-                 'xmin' : -0.05 , 'xmax' : 0.05,'rmin' : 0.4 , 'rmax' : 0.5, 'xDisp' : 0, 'yDisp' : 0, 'zDisp' : 0, } 
+        return { 'fDisp' : .01 , 'sDisp' : .02 ,
+                 'xmin' : -0.05 , 'xmax' : 0.05,'rmin' : 0.4 , 'rmax' : 0.5, 'xDisp' : 0, 'yDisp' : 0, 'zDisp' : 0, }
 
     def decideX(self,event):
         if(event.x<self._xmin):
@@ -137,12 +136,12 @@ class genApproach(ForwardXYCenter):
 
     @staticmethod
     def getattr():
-        return { 'fDisp' : .1 ,  'sDisp' : .2 ,
-                 'xmin' : -0.035 , 'xmax' : 0.035,'rmin' : 4 , 'rmax' : 4.25,  } 
+        return { 'fDisp' : .1 , 'sDisp' : .2 ,
+                 'xmin' : -0.035 , 'xmax' : 0.035,'rmin' : 4 , 'rmax' : 4.25, }
 
     @staticmethod
     def transitions():
-        return {DONE : state.State, vision.EventType.BUOY_FOUND : genApproach}    
+        return {DONE : state.State, vision.EventType.BUOY_FOUND : genApproach}
 
     def end_cond(self,event):
         return ((self.decideY(event) == 0) and (self.decideX(event) == 0) )
@@ -156,8 +155,8 @@ class genApproach(ForwardXYCenter):
 class XZCenter(VSDirect2ControlConst):
     @staticmethod
     def getattr():
-        return { 'fDisp' : .1 ,  'sDisp' : .2 ,
-                 'xmin' : -0.05 , 'xmax' : 0.05, 'zmin' : -0.05 , 'zmax' : 0.05, 'xDisp' : 0, 'yDisp' : 0, 'zDisp' : 0, } 
+        return { 'fDisp' : .1 , 'sDisp' : .2 ,
+                 'xmin' : -0.05 , 'xmax' : 0.05, 'zmin' : -0.05 , 'zmax' : 0.05, 'xDisp' : 0, 'yDisp' : 0, 'zDisp' : 0, }
 
     def decideX(self,event):
         if(event.x<self._xmin):
@@ -198,8 +197,8 @@ class SuperApproach(VSDirect2ControlConst):
 
     @staticmethod
     def getattr():
-        return { 'dy' : .1 ,  'dx' : .1 , 'dz' : .1,
-                 'xmin' : -0.05 , 'xmax' : 0.05, 'zmin' : -0.05 , 'zmax' : 0.05, 'rmin' : 1.5 , 'rmax' : 1.75, 'xDisp' : 0, 'yDisp' : 0, 'zDisp' : 0, } 
+        return { 'dy' : .1 , 'dx' : .1 , 'dz' : .1,
+                 'xmin' : -0.05 , 'xmax' : 0.05, 'zmin' : -0.05 , 'zmax' : 0.05, 'rmin' : 1.5 , 'rmax' : 1.75, 'xDisp' : 0, 'yDisp' : 0, 'zDisp' : 0, }
     
     def xFunc(self,event):
         return self._dx
@@ -257,7 +256,7 @@ class SuperApproach(VSDirect2ControlConst):
 class HyperApproach(VSMotion):
     @staticmethod
     def getattr():
-        return { 'kx' : .05 ,  'ky' : .4 , 'kz' : .45, 'x_d' : 0, 'r_d' : 1.75 , 'y_d' : 0, 'x_bound': .05, 'r_bound': .25, 'y_bound':.025 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1} 
+        return { 'kx' : .05 , 'ky' : .4 , 'kz' : .45, 'x_d' : 0, 'r_d' : 1.75 , 'y_d' : 0, 'x_bound': .05, 'r_bound': .25, 'y_bound':.025 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1}
 #define error methods to return the current error
     def yFunc(self,event):
         a = self._ky*(event.x - self._x_d)
@@ -334,7 +333,7 @@ class HyperApproachVConstrict(HyperApproach):
         if(abs(vx) > abs(vy) and vy != 0):
             vx = m.copysign(vy,vx)
         if(abs(vy) > abs(vx) and vx != 0):
-            vy = m.copysign(vx,vy)        
+            vy = m.copysign(vx,vy)
         self.motionManager._controller.moveVel(vx, vy, vz)
 
 
@@ -343,7 +342,7 @@ class HyperApproachVConstrict(HyperApproach):
 class genHyperApproach(HyperApproachVConstrict):
     @staticmethod
     def getattr():
-        return { 'kx' : .15 ,  'ky' : .4 , 'kz' : .45, 'x_d' : 0, 'r_d' : 1.75 , 'y_d' : 0, 'x_bound': .05, 'r_bound': .25, 'y_bound':.025 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1}   
+        return { 'kx' : .15 , 'ky' : .4 , 'kz' : .45, 'x_d' : 0, 'r_d' : 1.75 , 'y_d' : 0, 'x_bound': .05, 'r_bound': .25, 'y_bound':.025 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1}
 
     def enter(self):
         pass
@@ -361,15 +360,15 @@ class genHyperApproach(HyperApproachVConstrict):
 
     @staticmethod
     def transitions():
-        return {DONE : state.State, vision.EventType.BUOY_FOUND : genHyperApproach}    
+        return {DONE : state.State, vision.EventType.BUOY_FOUND : genHyperApproach}
 
-#    def DONE(self,event):
-#        util.freeze(self)
+# def DONE(self,event):
+# util.freeze(self)
 
 class DHyperApproach(HyperApproach):
     @staticmethod
     def getattr():
-        return { 'kx' : .15 ,  'ky' : .4 , 'kz' : 9, 'x_d' : 0, 'r_d' : 50 , 'y_d' : 0, 'x_bound': .05, 'r_bound': 20, 'y_bound':.025 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1}   
+        return { 'kx' : .15 , 'ky' : .4 , 'kz' : 9, 'x_d' : 0, 'r_d' : 50 , 'y_d' : 0, 'x_bound': .05, 'r_bound': 20, 'y_bound':.025 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1}
     
     def enter(self):
         pass
@@ -409,7 +408,7 @@ class DHyperApproach(HyperApproach):
 
     @staticmethod
     def transitions():
-        return {DONE : state.State, vision.EventType.BUOY_FOUND : DHyperApproach} 
+        return {DONE : state.State, vision.EventType.BUOY_FOUND : DHyperApproach}
 
 class IMaTarget(state.State):
     def TargetFound(self,event):
@@ -435,7 +434,7 @@ class TMApproach(genApproach):
             run(event)
     @staticmethod
     def transitions():
-        return {DONE : state.State, vision.EventType.TARGET_FOUND : TMApproach} 
+        return {DONE : state.State, vision.EventType.TARGET_FOUND : TMApproach}
 
 class TMApproachL(genApproach):
     def TARGET_FOUND(self,event):
@@ -445,7 +444,7 @@ class TMApproachL(genApproach):
             run(event)
     @staticmethod
     def transitions():
-        return {DONE : state.State, vision.EventType.TARGET_FOUND : TMApproachL} 
+        return {DONE : state.State, vision.EventType.TARGET_FOUND : TMApproachL}
 
 class TMApproachS(genApproach):
     def TARGET_FOUND(self,event):
@@ -455,4 +454,4 @@ class TMApproachS(genApproach):
             run(event)
     @staticmethod
     def transitions():
-        return {DONE : state.State, vision.EventType.TARGET_FOUND : TMApproachS} 
+        return {DONE : state.State, vision.EventType.TARGET_FOUND : TMApproachS}
