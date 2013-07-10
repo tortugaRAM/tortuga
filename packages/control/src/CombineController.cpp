@@ -184,6 +184,8 @@ void CombineController::doUpdate(const double& timestep,
         math::Vector3 eAccel = m_stateEstimator->getEstimatedLinearAcceleration();
         math::Vector2 dAccelxy = m_desiredState->getDesiredAccel();
         //double dAccel = m_desiredState->getDesiredDepthAccel();
+
+
         double eRate = m_stateEstimator->getEstimatedDepthRate();
         double dRate = m_desiredState->getDesiredDepthRate();
         //math::Vector3 toRot(eVelocity.x,eVelocity.y,eRate);
@@ -206,6 +208,9 @@ void CombineController::doUpdate(const double& timestep,
         if((vConx == false && m_desiredState->vx == true) || (vCony == false && m_desiredState->vy == true) || (vConz == false && m_desiredState->vz == true))
         {
 
+            //holdCurrentDepth();
+            //holdCurrentHeading();
+            //holdCurrentPosition();
                 if(m_desiredState->vx == true)
                 {
                     intTermxy.x = 0;
@@ -242,7 +247,7 @@ void CombineController::doUpdate(const double& timestep,
             double eXv = errVxy.x;
             double eXa = eAccel.x;
             double eXi = intTermxy.x;
-            fX = kp vx * eXv + kivx*eXi + kdvx*eXa;
+            fX = kpvx * eXv + kivx*eXi + kdvx*eXa;
             translationalForceOutf.x = fX;
             translationalForceOutp.x = 0;
             padj.y = cp.y;

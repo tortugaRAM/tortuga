@@ -367,7 +367,6 @@ class Center(State):
                 self.dive(self._distance)
             elif(event.y >= self._ymax):
                 #print("Moving up to compensate")
-
                 self.dive(-self._distance)
 
             self.STEPNUM += 1
@@ -379,6 +378,7 @@ class Center(State):
                 self.publish(Center.CENTERED, core.Event())
             else:
                 self.STEPNUM -= 1
+
 
 class Branch(object):
     """

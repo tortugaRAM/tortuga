@@ -830,7 +830,7 @@ void BuoyDetector::processImage(Image* input, Image* output)
 	//IplImage finalBouys_iplimage;
 
 	img_whitebalance = WhiteBalance(img);
-	//imshow("whitebalance",img_whitebalance);
+	imshow("whitebalance",img_whitebalance);
 	img_buoy = blob.DetectBuoys(img_whitebalance, m_redFilter, m_greenFilter,m_yellowFilter);
 	
 	cvtColor(img_buoy,img_buoy,CV_BGR2RGB);
@@ -856,7 +856,8 @@ void BuoyDetector::processImage(Image* input, Image* output)
 
 	if (Yellow_keypoints.size() < 1 && foundyellowbefore==true)
 	{
-		//publishLostEvent(Color::YELLOW);
+		foundyellowbefore = false;
+		publishLostEvent(Color::YELLOW);
 
        		LOGGER.infoStream() << "0" << " " << "0" << " " << "0" << " " << "0" << " "
                             << "0" << " " << "0" << " " << "0" << " " << "0" << " ";
@@ -868,8 +869,8 @@ void BuoyDetector::processImage(Image* input, Image* output)
 	}
 	if (Red_keypoints.size() < 1 && foundredbefore == true)
 	{
-		//publishLostEvent(Color::RED);
-
+		publishLostEvent(Color::RED);
+		foundredbefore = false;
        		LOGGER.infoStream() << "0" << " " << "0" << " " << "0" << " " << "0" << " "
                             << "0" << " " << "0" << " " << "0" << " " << "0" << " ";
 	}
@@ -880,8 +881,8 @@ void BuoyDetector::processImage(Image* input, Image* output)
 	}
 	if (Green_keypoints.size() < 1 && foundgreenbefore == true)
 	{
-		//publishLostEvent(Color::GREEN);
-
+		publishLostEvent(Color::GREEN);
+		foundgreenbefore = false;
        		LOGGER.infoStream() << "0" << " " << "0" << " " << "0" << " " << "0" << " "
                             << "0" << " " << "0" << " " << "0" << " " << "0" << " ";
 	}

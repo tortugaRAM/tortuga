@@ -113,7 +113,6 @@ foundLines::parallelLinesPairs foundLines::gateblob(Mat bw, Mat img_whitebalance
 
 foundLines::parallelLinesPairs foundLines::verticalParallelLines(Mat bw, Mat src)
 {
-
 	//use hough lines to find two vertical parallel lines
 	//check to see if there is a horizontal line inbetween, preferably at either the top or bottom of the bars
 	int cannylow = 40;
@@ -409,12 +408,6 @@ foundLines::parallelLinesPairs foundLines::verticalParallelLines(Mat bw, Mat src
            }//end if repeatability
    	 }
 
-
-
-	////imshow("hough",src);
-	//I should have all the lines now
-	//look for pairs- which they'll all be since they're all vertical
-	//if there are more than two lines, than find the ones with the best aspect ratio
 	int totalVertical= 0;
 	int totalHorizontal = 0;
 	for( size_t i = 0; i < linesP.size(); i++ )
@@ -918,8 +911,8 @@ final.foundAspectRatio_diff = 900;
 		}
 		circle(src, finalPair.center,3,Scalar( 0, 255, 0),-1,8 );
 	}//end else
-	return(src);
 */
+
 };
 
 

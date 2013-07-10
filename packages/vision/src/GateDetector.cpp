@@ -63,26 +63,25 @@ void GateDetector::init(core::ConfigNode config)
     // Color filter properties
 //Kate edit: trying to edit the VisionToolV2 gui to allow sliders    
 	propSet->addProperty(config, false, "Rmin",
-                         "min",
+                         "Rmin",
                          9, &m_redminH, 0, 255);
 	propSet->addProperty(config, false, "Rmax",
-                         "max",
+                         "Rmax",
                          127, &m_redmaxH, 0, 255);
 	propSet->addProperty(config, false, "Gmin",
-                         "min",
+                         "Gmin",
                          9, &m_greenminH, 0, 255);
 	propSet->addProperty(config, false, "Gmax",
-                         "max",
-                         127, &m_greenmaxH, 0, 255);
+                         "Gmax",
+                         76, &m_greenmaxH, 0, 255);
 	propSet->addProperty(config, false, "Ymin",
-                         "Hmin",
+                         "Ymin",
                          9, &m_yellowminH, 0, 255);
 	propSet->addProperty(config, false, "Ymax",
-                         "Hmax",
+                         "Ymax",
                          127, &m_yellowmaxH, 0, 255);
 	propSet->addProperty(config, false, "Smin",
                          "Smin",
-                         139, &m_minS, 0, 255);
                          90, &m_minS, 0, 255);
 	propSet->addProperty(config, false, "Smax",
                          "Smax",
@@ -195,7 +194,18 @@ Mat GateDetector::processImageColor(Image*input)
 
 	printf("\nerode");
 	//lets AND the blue and the green images
-	bitwise_and(erosion_dst_blue,erosion_dst_red, erosion_dst,noArray());
+	if (m_checkRed == true)
+	{
+		img_red =blob.RedFilter(hsv_planes,red_minH,red_maxH);
+		erode(img_red, erosion_dst_red, element );
+		bitwise_and(erosion_dst_blue,erosion_dst_red, erosion_dst,noArray());
+	}
+	else
+	{
+		img_green =blob.OtherColorFilter(hsv_planes,green_minH,green_maxH);
+		erode(img_green, erosion_dst_green, element );
+		bitwise_and(erosion_dst_blue,erosion_dst_green, erosion_dst,noArray());
+	}
 	//imshow("AND",erosion_dst);
 
 	return(erosion_dst);
@@ -250,11 +260,6 @@ void GateDetector::processImage(Image* input, Image* output)
 	input->setData(img_whitebalance.data,false);
 	frame->copyFrom(input);
 
-    std::cerr<<"will i publish?"<<std::endl;
-	if (gate.m_found==TRUE)
-		publishFoundEvent(gate.finalPair);
-
-	//cvtColor(img_whitebalance,img_whitebalance,CV_BGR2RGB);
 
 	if(output)
 	    {
@@ -314,7 +319,6 @@ void GateDetector::publishLostEventBuoy(Color::ColorType color)
 
 void GateDetector::publishFoundEvent(foundLines::parallelLinesPairs finalPairs)
 {
-    std::cerr<<"publishing"<<std::endl;
     static math::Degree xFOV = VisionSystem::getFrontHorizontalFieldOfView();
     static math::Degree yFOV = VisionSystem::getFrontVerticalFieldOfView();
     static double xPixelWidth = VisionSystem::getFrontHorizontalPixelResolution();
@@ -354,5 +358,43 @@ void GateDetector::publishFoundEvent(foundLines::parallelLinesPairs finalPairs)
       publish(EventType::GATE_FOUND, event);
 };
 
+void GateDetector::publishFoundEventBuoy(foundLines::parallelLinesPairs finalPairs, Color::ColorType color)
+{
+    static math::Degree xFOV = VisionSystem::getFrontHorizontalFieldOfView();
+    static math::Degree yFOV = VisionSystem::getFrontVerticalFieldOfView();
+    static double xPixelWidth = VisionSystem::getFrontHorizontalPixelResolution();
+    static double yPixelHeight = VisionSystem::getFrontVerticalPixelResolution();
+
+   BuoyEventPtr event(new BuoyEvent()); 
+
+    double centerX = 0, centerY = 0;
+    Detector::imageToAICoordinates(frame, finalPairs.center.x, finalPairs.center.y,
+                                   centerX, centerY);
+
+    int minX = finalPairs.line1_lower.x-finalPairs.width;
+    int maxX = finalPairs.line2_lower.x+finalPairs.width;
+    int minY = finalPairs.line1_lower.y-finalPairs.line1_height;
+    int maxY = finalPairs.line1_upper.y-finalPairs.line1_height;;
+
+    bool touchingEdge = false;
+    if(minX == 0 || minY == 0 || maxX == xPixelWidth || maxY == yPixelHeight)
+        touchingEdge = true;
+
+      event->x = centerX;
+    event->y = centerY;
+    event->range = finalPairs.width;
+    event->azimuth = math::Degree((-1) * (xFOV / 2) * centerX);
+    event->elevation = math::Degree((yFOV / 2) * centerY);
+    event->color = color;
+    event->touchingEdge = touchingEdge;
+
+    publish(EventType::GATE_FOUND, event);
+};
+
+
+int GateDetector::getmaxdiff(void)
+{
+	return(m_maxdiff);
+};
 } // namespace vision
 } // namespace ram

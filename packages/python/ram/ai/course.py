@@ -25,7 +25,6 @@ import ext.math as math
 import ram.ai.task as task
 import ram.ai.state as state
 import ram.ai.gate as gate
-import ram.ai.fakeGate as fakeGate
 import ram.ai.pipe as pipe
 import ram.ai.light as light
 import ram.ai.buoy as buoy
@@ -93,6 +92,8 @@ class Gate(task.Task):
             # Save current heading
             self.ai.data['gateOrientation'] = \
                 self.stateEstimator.getEstimatedOrientation().getYaw().valueDegrees()
+
+        self.ai.data['fakeGate'] = False
         
         # Setup timer to trigger pipe detector after a certain delay
         delay = self._config.get('pipeDelay', 30)
@@ -113,7 +114,7 @@ class FakeGate(task.Task):
     
     @staticmethod
     def _transitions():
-        return { fakeGate.COMPLETE : task.Next,
+        return { gate.COMPLETE : task.Next,
                  'GO' : state.Branch(gate.Start) }
 
     @staticmethod
@@ -126,10 +127,15 @@ class FakeGate(task.Task):
         self.exited = False
         
         # Branch of state machine for gate
-        self.stateMachine.start(state.Branch(fakeGate.Start))
+        self.stateMachine.start(state.Branch(gate.Start))
 
         self.ai.data['gateOrientation'] = \
             self._config.get('gateOrientation', 0)
+
+        self.ai.data['fakeGateDistance'] = \
+            self._config.get('fakeGateDistance', 5)
+        
+        self.ai.data['fakeGate'] = True
         
         if self.ai.data['gateOrientation'] == 0:
             # Save current heading
@@ -175,7 +181,7 @@ class Pipe(task.Task):
             # We found enough pipes move on
             self.publish(Pipe.COMPLETE, core.Event())
     
-    def enter(self, defaultTimeout = 3600):
+    def enter(self, defaultTimeout = 60):
         self._className = type(self).__name__
         timeout = self.ai.data['config'].get(self._className, {}).get(
                     'taskTimeout', defaultTimeout)
