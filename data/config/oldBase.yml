@@ -187,37 +187,21 @@ Vehicle:
             priority: high
 
             # #from 2011-4-2011
-            imuToVehicleRotMatrix: [[ -0.2991, -0.9530, -0.0479 ],
-                                    [ -0.9541, 0.2996, -0.0020 ],
-                                    [ 0.0162, 0.0451, -0.9989 ]]
+            imuToVehicleRotMatrix: [[ -0.605202, -0.794403, -0.051528 ],
+                                    [ -0.796057, 0.604321, 0.033007 ],
+                                    [ 0.004919, 0.060995, -0.998126 ]]
 
-            magXBias: -0.026977
-            magYBias: 0.019687
-            magZBias: -0.064661
- 
-            gyroXBias: -0.006018
-            gyroYBias: 0.004329
-            gyroZBias: 0.004822
+            magXBias: -0.039748 #-0.026977
+            magYBias: 0.062430 #0.019687
+            magZBias: -0.034960 #-0.064661
 
-            accelXBias: -0.003667
-            accelYBias: -0.019106
-            accelZBias: -0.021700
+            gyroXBias: -0.000772 #-0.006018
+            gyroYBias: 0.019978 #0.004329
+            gyroZBias: 0.004069 #0.004822
 
-            # imuToVehicleRotMatrix: [[ -0.605202, -0.794403, -0.051528 ],
-            #                         [ -0.796057, 0.604321, 0.033007 ],
-            #                         [ 0.004919, 0.060995, -0.998126 ]]
-
-            # magXBias: -0.039748 #-0.026977
-            # magYBias: 0.062430 #0.019687
-            # magZBias: -0.034960 #-0.064661
-
-            # gyroXBias: -0.000772 #-0.006018
-            # gyroYBias: 0.019978 #0.004329
-            # gyroZBias: 0.004069 #0.004822
-
-            # accelXBias: 0.000615 #-0.003667
-            # accelYBias: -0.017866 #-0.019106
-            # accelZBias: -0.020711 #-0.021700
+            accelXBias: 0.000615 #-0.003667
+            accelYBias: -0.017866 #-0.019106
+            accelZBias: -0.020711 #-0.021700
             
             # accelXBias: 0.018312
             # accelYBias: -0.004804
@@ -235,7 +219,7 @@ Vehicle:
             #                         [ 0.4656, 0.8847, -0.0203 ],
             #                         [ -0.0039, 0.0250, -0.9979 ]]
                                     
-#            localMagneticPitch: 60
+            localMagneticPitch: 60
 
         IMU:
             type: IMU
@@ -243,37 +227,21 @@ Vehicle:
             update_interval: 5
             priority: high
             # These are in VEHICLE FRAME
-            imuToVehicleRotMatrix: [[ -0.6234, 0.0290, 0.7814 ],
-                                    [ 0.7818, 0.0102, 0.6234 ],
-                                    [ 0.0101, 0.9995, -0.0291 ]]
- 
-            magXBias: -0.130466
-            magYBias: -0.491657
-            magZBias: 0.045481
- 
-            gyroXBias: 0.022581
-            gyroYBias: -0.027298
-            gyroZBias: -0.036842
+            imuToVehicleRotMatrix: [[ 0.949761, -0.040167, -0.310387 ],
+                                    [ -0.311338, -0.019957, -0.950090 ],
+                                    [ -0.031968, 0.998994, -0.031460 ]]
 
-            accelXBias: -0.019185
-            accelYBias: -0.029437
-            accelZBias: 0.028014
+            magXBias: 0.408743 #-0.130466
+            magYBias: -0.381374 #-0.491657
+            magZBias: -0.251483 #0.045481
 
-            # imuToVehicleRotMatrix: [[ 0.949761, -0.040167, -0.310387 ],
-            #                         [ -0.311338, -0.019957, -0.950090 ],
-            #                         [ -0.031968, 0.998994, -0.031460 ]]
+            gyroXBias: -0.441184 #0.022581
+            gyroYBias: -0.024743 #-0.027298
+            gyroZBias: -0.048570 #-0.036842
 
-            # magXBias: 0.408743 #-0.130466
-            # magYBias: -0.381374 #-0.491657
-            # magZBias: -0.251483 #0.045481
-
-            # gyroXBias: -0.441184 #0.022581
-            # gyroYBias: -0.024743 #-0.027298
-            # gyroZBias: -0.048570 #-0.036842
-
-            # accelXBias: -0.019909 #-0.019185
-            # accelYBias: -0.040147 #-0.029437
-            # accelZBias: 0.026331 #0.028014
+            accelXBias: -0.019909 #-0.019185
+            accelYBias: -0.040147 #-0.029437
+            accelZBias: 0.026331 #0.028014
 
             # accelXBias: 0.033962
             # accelYBias: 0.008538
@@ -512,16 +480,6 @@ Controller:
     depthThreshold: 0.2
     orientationThreshold: 0.3
 
-    kpvx: 47.5
-    kivx: 6.84
-    kdvx: 6
-    kpvy: 48
-    kivy: 7.7
-    kdvy: 5
-    kpvz: 33.5
-    kivz: 1
-    kdvz: 3
-
     TranslationalController:
         type: TrackingTranslationalController
         x1kp: 25
@@ -557,15 +515,6 @@ Controller:
         #rotLambda: 4.75   # error metric 'gain'
         #rotGamma: 0.75    # parameter adaptation rate
         #rotK: 1.75        # analagous to kd ? NO IT IS NOT
-    #RotationalController:
-        #type: NonlinearLinearVelocityAdaptivePDRotationalController
-        #kp: 22.5
-        #kd: 2
-        #dtMin: 0.005
-        #dtMax: 0.1
-        #desiredOrientation: [0, 0, 0, 1]
-        #inertia: [-0.001310938, 0.20214289, 0.6835592, 0.013848208, 3.381841, 0.20214289, 3.548379, 0.013848208, -0.0013110938]
-        #adaptTerms: [-0.1, -0.1, 0]
 
 #Monitor:
     #type: Monitor
