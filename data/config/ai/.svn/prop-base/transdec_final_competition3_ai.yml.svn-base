@@ -1,8 +1,0 @@
-K 13
-svn:mergeinfo
-V 323
-/branches/cmake/data/config/ai/transdec_final_competition3_ai.yml:6819-6877,6880-6886
-/branches/controller_reorganization/data/config/ai/transdec_final_competition3_ai.yml:6431-6538
-/branches/sonar_pingerID_legacy/data/config/ai/transdec_qual.yml:6046-6057
-/trunk/data/config/ai/transdec_final_competition3_ai.yml:6747-7287
-END
