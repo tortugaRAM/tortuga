@@ -13,7 +13,7 @@ config:
     targetBuoys: ['red']
     targetSymbols: ['NET', 'SWORD']
     sonarDepth: 4
-    uprightsDepth: 6.7
+    #uprightsDepth: 6.7
     windowDepth: 7.7
     windowOrientation: 50
     # windowX : -1
