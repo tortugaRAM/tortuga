@@ -271,7 +271,7 @@ class HyperApproach(VSMotion):
         return a
 
     def zFunc(self,event):
-        a = self._kz*-(event.y - self._y_d)
+        a = -self._kz*(event.y - self._y_d)
         if(abs(a)<self._minvz):
             a = m.copysign(self._minvz,a)
         return a
@@ -368,7 +368,7 @@ class genHyperApproach(HyperApproachVConstrict):
 class DHyperApproach(HyperApproach):
     @staticmethod
     def getattr():
-        return { 'kx' : .15 , 'ky' : .4 , 'kz' : 9, 'x_d' : 0, 'r_d' : 50 , 'y_d' : 0, 'x_bound': .05, 'r_bound': 20, 'y_bound':.025 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1}
+        return { 'kx' : .25 , 'ky' : .25 , 'kz' : 7, 'x_d' : 0, 'r_d' : 190 , 'y_d' : 0, 'x_bound': .075, 'r_bound': 20, 'y_bound':.075 ,'minvx': .1, 'minvy': .1 ,'minvz' : .3}
     
     def enter(self):
         pass
@@ -377,15 +377,22 @@ class DHyperApproach(HyperApproach):
         if(event.color == vision.Color.RED):
             #get rotation matrix from robot frame to intertial frame, then apply it to the x,y measurements
             #this rotation matrix must exclude yaw, this ends up looking a bit silly because of quaternion math
-            q1 = self.stateEstimator.getEstimatedOrientation()
-            v1 = math.Vector3(event.x,event.y,0)
+            #q1 = self.stateEstimator.getEstimatedOrientation()
+            #v1 = math.Vector3(event.x,event.y,0)
             #now get the quaternion to unrotate our yaw, by unrotating by our level quaternion
-            qp = control.holdCurrentHeadingHelper(q1)
+            #qp = control.holdCurrentHeadingHelper(q1)
             #by rotating to the inertial frame, then rotating to the body yaw frame we acheive our goal
             #rotate coordinates from body frame to inertial frame
-            v1p = qp*(q1.UnitInverse()*v1)
-            event.x = v1p.x
-            event.y = v1p.y
+            #v1p = qp*(q1.UnitInverse()*v1)
+            #event.x = v1p.x
+            #event.y = v1p.y
+            print "x:"+str(event.x)
+            print "y:"+str(event.y)
+            print "r:"+str(event.range)
+            print self.xFunc(event)
+            print self.yFunc(event)
+            print self.zFunc(event)
+            print '----------'
             self.run(event)
 
     def yFunc(self,event):
@@ -396,62 +403,117 @@ class DHyperApproach(HyperApproach):
 
     def zFunc(self,event):
         a = self._kz*(1/event.range - 1/self._r_d)
-        if(abs(a)<self._minvx):
-            a = m.copysign(self._minvx,a)
-        return a
-
-    def xFunc(self,event):
-        a = self._kx*-(event.y - self._y_d)
         if(abs(a)<self._minvz):
             a = m.copysign(self._minvz,a)
         return a
+
+    def xFunc(self,event):
+        a = self._kx*(event.y - self._y_d)
+        if(abs(a)<self._minvy):
+            a = m.copysign(self._minvx,a)
+        return a
+
+
+    def decideY(self,event):
+        if(event.x<(self._x_d - self._x_bound)):
+            return 1#go the other way
+        else:
+            if(event.x>(self._x_d + self._x_bound)):
+                return 1#go the other way
+            else:
+            #inside the bounds, don't move
+                return 0
+
+    def decideZ(self,event):
+        if(event.range<(self._r_d - self._r_bound)):
+            return 1#go the other way
+        else:
+            if(event.range>(self._r_d + self._r_bound)):
+                return 1#go the other way
+            else:
+            #inside the bounds, don't move
+                return 0
+
+    def decideX(self,event):
+        if(event.y<(self._y_d - self._y_bound)):
+            return 1#go the other way
+        else:
+            if(event.y>(self._y_d + self._y_bound)):
+                return 1#go the other way
+            else:
+            #inside the bounds, don't move
+                return 0
+
 
     @staticmethod
     def transitions():
         return {DONE : state.State, vision.EventType.BUOY_FOUND : DHyperApproach}
 
 class IMaTarget(state.State):
-    def TargetFound(self,event):
-            print "x:"+event.x
-            print "y:"+event.y
-            print "lx:"+event.largex
-            print "ly:"+event.largey
-            print "sx:"+event.smallx
-            print "sy:"+event.smally
-            print "px:"+event.panelx
-            print "py:"+event.panely
-            print "sq:"+event.squareNess
-            print "r:"+event.range
-            print "lf:"+event.largeflag
-            print "sf:"+event.smallflag
-            print "lr:"+event.rangelarge
-            print "sr:"+event.rangesmall
-            print "color:"+event.color
+    def TARGET_FOUND(self,event):
+            print "x:"+str(event.x)
+            print "y:"+str(event.y)
+            #print "lx:"+str(event.largex)
+            #print "ly:"+str(event.largey)
+            #print "sx:"+str(event.smallx)
+            #print "sy:"+str(event.smally)
+            #print "px:"+str(event.panelx)
+            #print "py:"+str(event.panely)
+            #print "sq:"+str(event.squareNess)
+            print "r:"+str(event.range)
+            #print "lf:"+str(event.largeflag)
+            #print "sf:"+str(event.smallflag)
+            #print "lr:"+str(event.rangelarge)
+            #print "sr:"+str(event.rangesmall)
+            print "color:"+str(event.color)
+    
+    @staticmethod
+    def transitions():
+        return { vision.EventType.TARGET_FOUND : IMaTarget }
 
-class TMApproach(genApproach):
+class TMApproach(HyperApproach):
     def TARGET_FOUND(self,event):
         if(event.color == vision.Color.UNKNOWN):
-            run(event)
+            print '-------'
+            print 'xFunc ' + str(self.xFunc(event))
+            print 'yFunc ' + str(self.yFunc(event))
+            print 'zFunc ' + str(self.zFunc(event))
+            print 'X ' + str(event.x)
+            print 'Y ' + str(event.y)
+            print 'Range ' + str(event.range)
+            self.run(event)
     @staticmethod
     def transitions():
         return {DONE : state.State, vision.EventType.TARGET_FOUND : TMApproach}
 
-class TMApproachL(genApproach):
+    @staticmethod
+    def getattr():
+        return { 'kx' : 7 , 'ky' : .4 , 'kz' : .45, 'x_d' : 0, 'r_d' : 200 , 'y_d' : 0, 'x_bound': .05, 'r_bound': 20, 'y_bound':.05 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1}
+
+class TMApproachL(genHyperApproach):
     def TARGET_FOUND(self,event):
         if(event.color == vision.Color.RED and event.largeflag == true):
             event.x = largex
             event.y = largey
-            run(event)
+            self.run(event)
     @staticmethod
     def transitions():
         return {DONE : state.State, vision.EventType.TARGET_FOUND : TMApproachL}
 
-class TMApproachS(genApproach):
+    @staticmethod
+    def getattr():
+        return { 'kx' : .15 , 'ky' : .4 , 'kz' : .45, 'x_d' : 0, 'r_d' : 1.75 , 'y_d' : 0, 'x_bound': .05, 'r_bound': .25, 'y_bound':.025 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1}
+
+class TMApproachS(genHyperApproach):
     def TARGET_FOUND(self,event):
         if(event.color == vision.Color.RED and event.smallflag == True):
             event.x = smallx
             event.y = smally
-            run(event)
+            self.run(event)
     @staticmethod
     def transitions():
         return {DONE : state.State, vision.EventType.TARGET_FOUND : TMApproachS}
+
+    @staticmethod
+    def getattr():
+        return { 'kx' : .15 , 'ky' : .4 , 'kz' : .45, 'x_d' : 0, 'r_d' : 1.75 , 'y_d' : 0, 'x_bound': .05, 'r_bound': .25, 'y_bound':.025 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1}

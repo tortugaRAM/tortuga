@@ -190,25 +190,27 @@ void CombineController::doUpdate(const double& timestep,
 
         double eRate = m_stateEstimator->getEstimatedDepthRate();
         double dRate = m_desiredState->getDesiredDepthRate();
-        //math::Vector3 toRot(eVelocity.x,eVelocity.y,eRate);
-        //math::Vector3 rot = m_stateEstimator->getEstimatedOrientation() * toRot;
-        //eVelocity.x = rot.x;
-        //eVelocity.y = rot.y;
+        //rotate estimated velocity into the body frame, since its in the intertial frame
+        math::Vector3 toRot(eVelocity.x,eVelocity.y,0);
+        math::Vector3 rot = m_stateEstimator->getEstimatedOrientation() * toRot;
+        //then rotate acceleration
+        eAccel = m_stateEstimator->getEstimatedOrientation()*eAccel;
+        eVelocity.x = rot.x;
+        eVelocity.y = rot.y;
         //eRate = rot.z;
         //double eAccel = (eRate - lastDV)/timestep;
         lastDV = eRate;
         double fX, fY,fZ;
-        math::Vector3 toRot(dVelocity.x-eVelocity.x,dVelocity.y - eVelocity.y,eRate - dRate);
-        math::Vector3 rot = m_stateEstimator->getEstimatedOrientation() * toRot;
-        math::Vector2 errVxy = math::Vector2(rot.x,rot.y);//dVelocity - eVelocity;
-        double errVz = rot.z;//eRate - dRate;
+        //math::Vector3 toRot(dVelocity.x-eVelocity.x,dVelocity.y - eVelocity.y,eRate - dRate);
+        //math::Vector3 rot = m_stateEstimator->getEstimatedOrientation() * toRot;
+        math::Vector2 errVxy = /*math::Vector2(rot.x,rot.y);*/dVelocity - eVelocity;
+        double errVz = /*rot.z;*/eRate - dRate;
         intTermxy = intTermxy + errVxy*timestep;
         intTermz = intTermz + errVz*timestep;
 
 
 
         //holdCurrentDepth();
-        //holdCurrentHeading();
         //holdCurrentPosition();
         if((vConx == false && m_desiredState->vx == true))
         {
@@ -224,25 +226,31 @@ void CombineController::doUpdate(const double& timestep,
         {
             //begin added
             //a more sohpisticated stealing, which separates the transient sum from the steady state one
-            //intTermz = m_depthController->getISum();
-            //intTermz = copysign(piz-intTermz,dRate) + intTermz;
+            intTermz = m_depthController->getISum();
+            intTermz = copysign(piz-intTermz,dRate) + intTermz;
             //end added
             
-            intTermz = m_depthController->getISum(); //steal the positional controllers z integral term
+            //intTermz = m_depthController->getISum(); //steal the positional controllers z integral term
         }
         //if turning off visual servoing, store the previous integral sums
         //this is done to reuse them later in order to speed up our rise time
         if((vConx == true && m_desiredState->vx == false))
         {
             pix = intTermxy.x;
+            holdCurrentPosition();
+            //holdCurrentHeading();
         }
         if(vCony == true && m_desiredState->vy == false)
         {
             piy = intTermxy.y;
+            holdCurrentPosition();
+            //holdCurrentHeading();
         }
         if(vConz == true && m_desiredState->vz == false)
         {
             piz = intTermz;
+            holdCurrentDepth();
+            //holdCurrentHeading();
         }
         vConx = m_desiredState->vx;
         vCony = m_desiredState->vy;
