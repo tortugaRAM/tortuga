@@ -153,17 +153,18 @@ public:
     BuoyEvent() : VisionEvent(), color(Color::UNKNOWN) {};
     BuoyEvent(double x_, double y_, double range_, 
               math::Degree azimuth_, math::Degree elevation_,
-              Color::ColorType color_, bool touchingEdge_) :
+              Color::ColorType color_, bool touchingEdge_,double angle_) :
         VisionEvent(x_, y_, range_),
         azimuth(azimuth_),
         elevation(elevation_),
         color(color_),
-        touchingEdge(touchingEdge_) {}
+        touchingEdge(touchingEdge_), angle(angle_) {}
 
     math::Degree azimuth;
     math::Degree elevation;
     Color::ColorType color;
     bool touchingEdge;
+	double angle;
 
     virtual core::EventPtr clone();
 };
@@ -219,7 +220,7 @@ typedef boost::shared_ptr<CaesarEvent> CaesarEventPtr;
 class RAM_EXPORT PipeEvent : public VisionEvent
 {
 public:
-    PipeEvent(double x_, double y_, double range_, double angle_) :
+    PipeEvent(int id, double x_, double y_,double range_, double angle_) :
         VisionEvent(x_, y_, range_),
         angle(angle_) {}
 
@@ -504,7 +505,7 @@ class RAM_EXPORT TargetEvent : public core::Event
 {
   public:
     TargetEvent(double centerX, double centerY, double largeCenterX, double largeCenterY, double smallCenterX, double smallCenterY,double squareNess_,
-                double range_, bool largeflag, bool smallflag, double rangelarge, double rangesmall,Color::ColorType color_ = Color::UNKNOWN) :
+		double range_, bool largeflag, bool smallflag, double rangelarge, double rangesmall,double angle_, Color::ColorType color_= Color::UNKNOWN) :
         x(centerX),
         y(centerY),
 	largex(largeCenterX),
@@ -517,6 +518,7 @@ class RAM_EXPORT TargetEvent : public core::Event
 	smallflag(smallflag),
 	rangelarge(rangelarge),
 	rangesmall(rangesmall),
+	angle(angle_),
         color(color_)
     {
     }
@@ -533,6 +535,7 @@ class RAM_EXPORT TargetEvent : public core::Event
 	smallflag(false),
 	rangelarge(0),
 	rangesmall(0),
+	angle(0),
         color(Color::UNKNOWN)
     {
     }
@@ -552,8 +555,8 @@ class RAM_EXPORT TargetEvent : public core::Event
     bool smallflag;
     double rangelarge;
     double rangesmall;
-    Color::ColorType color;
-
+	double angle;
+    Color::ColorType color; 
     virtual core::EventPtr clone();
 };
     

@@ -219,8 +219,8 @@ void CombineController::doUpdate(const double& timestep,
         }
         if((vCony == false && m_desiredState->vy == true))
         {
-            intTermxy.y = copysign(piy,dVelocity.y);
-            //intTermxy.y = 0;
+            //intTermxy.y = copysign(piy,dVelocity.y);
+            intTermxy.y = 0;
         }
         if((vConz == false && m_desiredState->vz == true))
         {

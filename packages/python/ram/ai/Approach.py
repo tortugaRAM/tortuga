@@ -18,7 +18,7 @@ class VSMotion(state.State):
 
     def yFunc(self,event):
         return 0
-    
+
     def zFunc(self,event):
         return 0
 
@@ -58,23 +58,23 @@ class VSMotion(state.State):
             self.moveY(self.decideY(event),event)
             self.moveZ(self.decideZ(event),event)
             self.runMotion(event)
-    
+
 class VSDirect2Control(VSMotion):
 
-    
+
     def runMotion(self,event):
         d = self.motionManager._estimator.getEstimatedDepth()
         pos = self.motionManager._estimator.getEstimatedPosition()
         if(self.decideZ(event) != 0):
             self.motionManager._controller.changeDepth(self._zDisp+d)
-        #print pos
+            #print pos
         self.motionManager._controller.translate(math.Vector2(self._yDisp+pos.x,self._xDisp+pos.y))
-        
-        
+
+
 class VSDirect2ControlConst(VSDirect2Control):
     @staticmethod
- 
-    
+
+
     def xFunc(self,event):
         return self._cX
     def yFunc(self,event):
@@ -97,15 +97,17 @@ class ForwardXYCenter(VSDirect2ControlConst):
             else:
             #inside the bounds, don't move
                 return 0
+
     def decideY(self,event):
         if(event.range<self._rmin):
-            return -1#go the other way
+            return 1#go the other way
         else:
             if(event.range>self._rmax):
-                return 1#go the other way
+                return -1#go the other way
             else:
             #inside the bounds, don't move
                 return 0
+
     def xFunc(self,event):
         return self._sDisp
 
@@ -153,6 +155,7 @@ class genApproach(ForwardXYCenter):
 
 
 class XZCenter(VSDirect2ControlConst):
+
     @staticmethod
     def getattr():
         return { 'fDisp' : .1 , 'sDisp' : .2 ,
@@ -167,7 +170,8 @@ class XZCenter(VSDirect2ControlConst):
             else:
             #inside the bounds, don't move
                 return 0
-    def decideZ(self,event):
+
+    def decideZ(self, event):
         if(event.y<self._zmin):
             return 1#go the other way
         else:
@@ -177,16 +181,16 @@ class XZCenter(VSDirect2ControlConst):
             #inside the bounds, don't move
                 return 0
 
-    def xFunc(self,event):
+    def xFunc(self, event):
         return self._sDisp
 
-    def zFunc(self,event):
-        return self._fDisp
+    def zFunc(self, event):
+        return self._dDisp
 
-    def moveX(self,dirct,event):
+    def moveX(self, dirct, event):
         self._xDisp = dirct*self.xFunc(event)
 
-    def moveZ(self,dirct,event):
+    def moveZ(self, dirct, event):
         self._zDisp = dirct*self.zFunc(event)
     
     def DONE(self,event):
@@ -346,14 +350,7 @@ class genHyperApproach(HyperApproachVConstrict):
 
     def enter(self):
         pass
-
-    #redefined because the simulator cheats at ranges
-    def xFunc(self,event):
-        a = self._kx*(event.range - self._r_d)
-        if(abs(a)<self._minvx):
-            a = m.copysign(self._minvx,a)
-        return a
-
+    
     def BUOY_FOUND(self,event):
         if(event.color == vision.Color.YELLOW):
             self.run(event)
