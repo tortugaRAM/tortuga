@@ -21,40 +21,44 @@ import ram.motion as motion
 import ram.timer
 from ram.motion.basic import Frame
 
+import ram.ai.Utility as utility
+import ram.ai.Approach as approach
+
 COMPLETE = core.declareEventType('COMPLETE')
 
-class Start(state.State):
+# global vars ------
+global startDepth
+global wantedOrien
+global timeLimit
+global AlignYawTimeLimit
+global lastLocation
+
+startDepth = 5
+wantedOrien = -45
+timeLimit = 10
+
+# end of global vars
+
+class Start(utility.MotionState):
+
+    """ Dive down to the starting depth for the task
+    """
 
     @staticmethod
     def transitions():
-        return { motion.basic.MotionManager.FINISHED : Search }
-
+        return { motion.basic.MotionManager.FINISHED : Start,
+                 utility.DONE : Search }
     @staticmethod
     def getattr():
-        return { 'diveRate' : 0.3 , 'speed' : 0.3 }
+        global startDepth
+        return { 'depth' : startDepth, 'diveSpeed' : 0.15 }
 
     def enter(self):
-        self.visionSystem.buoyDetectorOn()
-
-        uprightsDepth = self.ai.data['config'].get('uprightsDepth', -1)
-
-        # Compute trajectories
-        diveTrajectory = motion.trajectories.ScalarCubicTrajectory(
-            initialValue = self.stateEstimator.getEstimatedDepth(),
-            finalValue = uprightsDepth,
-            initialRate = self.stateEstimator.getEstimatedDepthRate(),
-            avgRate = self._diveRate)
-        
-        currentOrientation = self.stateEstimator.getEstimatedOrientation()
-
-        # Dive yaw and translate
-        diveMotion = motion.basic.ChangeDepth(trajectory = diveTrajectory)
-        
-        self.motionManager.setMotion(diveMotion)
+        self.dive( self._depth, self._diveSpeed )
 
     def exit(self):
+        utility.freeze(self)
         self.motionManager.stopCurrentMotion()
-
 
 class Search(state.ZigZag):
 
@@ -63,129 +67,97 @@ class Search(state.ZigZag):
         return { vision.EventType.BUOY_FOUND : ReAlign , 
                  state.ZigZag.DONE : End }
 
+class AlignmentApproach(approach.genHyperApproach):
 
-class ReAlign(state.State):
+    """ First approach to get it close to the parallels
+    """
+
+    @staticmethod
+    def transitions():
+        return { vision.EventType.GATE_FOUND : AlignmentApproach,
+                 vision.EventType.GATE_LOST : AlignmentReacquire }
+
+    @staticmethod
+    def getattr():
+        return { 'kx' : .15 ,  'ky' : .4 , 'kz' : .45, 
+                 'x_d' : 0, 'r_d' : 2.5 , 'y_d' : 0, 
+                 'x_bound': .05, 'r_bound': .25, 'y_bound': .025 ,
+                 'minvx': .1, 'minvy': .1 ,'minvz' : .1 }
+
+    def enter(self):
+        pass
+
+    def GATE_FOUND(self, event):
+        global lastLocation
+        lastLocation = self.stateEstimator.getEstimatedPosition()
+        self.run(event)
+
+    def end_cond(self, event):
+        return ( (self.decideY(event) == 0) and \
+                 (self.decideX(event) == 0) and \
+                 (self.decideZ(event) == 0) )
+
+    def exit(self):
+        utility.freeze(self)
+        self.motionManager.stopCurrentMotion()
+
+
+class AlignOrientation(utility.MotionState):
+
+    
 
     DONE = core.declareEventType('DONE')
 
-    STEPNUM = 0
-
     @staticmethod
     def transitions():
-        return {  ReAlign.DONE : Strafe }
+        return { vision.EventType.GATE_FOUND : AlignOrientation,
+                 vision.EventType.GATE_LOST : AlignStrafe,
+                 motion.basic.MotionManager.FINISHED : AlignOrientation,
+                 approach.DONE : AlignStrafe,
+                 AlignOrientation.DONE : CenterUprights }
 
     @staticmethod
     def getattr():
-        return { 'speed' : 0.3 , 'distance' : 4 , 'delay' : 3 }
+        global wantedOrien
+        global AlignYawTimeLimit
+        global lastLocation
+        lastLocation = self.stateEstimator.getEstimatedPosition()
+        return { 'orientation' : wantedOrien, 'time' : AlignYawTimeLimit }
 
     def enter(self):
-        windowOrientation = self.ai.data['config'].get('windowOrientation', 9001)
+        pass
 
-        if windowOrientation > 9000:
-            raise LookupError, "windowOrientation not specified"
-
-        currentOrientation = self.stateEstimator.getEstimatedOrientation()
-        yawTrajectory = motion.trajectories.StepTrajectory(
-            initialValue = currentOrientation,
-            finalValue = math.Quaternion(math.Degree(windowOrientation), 
-                                         math.Vector3.UNIT_Z),
-            initialRate = self.stateEstimator.getEstimatedAngularRate(),
-            finalRate = math.Vector3.ZERO)
-            
-        yawMotion = motion.basic.ChangeOrientation(yawTrajectory)
-        self.motionManager.setMotion(yawMotion)
-
-        self.timer = self.timerManager.newTimer(ReAlign.DONE, self._delay)
-        self.timer.start()
+    def GATE_FOUND(self, event):
+        self.yawGlobal(self._orientation, self._time)
+        
         
     def exit(self):
+        utility.freeze(self)
         self.motionManager.stopCurrentMotion()
 
-
-class Strafe(state.State):
+class AlignStrafe(approach.XZCenter):
 
     @staticmethod
     def transitions():
-        return { motion.basic.MotionManager.FINISHED : End ,
-                 vision.EventType.BUOY_FOUND : UpCenter }
+        return { vision.EventType.GATE_FOUND : AlignStrafe,
+                 vision.EventType.GATE_LOST : AlignStrafe,
+                 }
 
     @staticmethod
     def getattr():
-        return { 'speed' : 0.3 , 'distance' : 4 }
+        
 
-    def enter(self):
-        translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
-            initialValue = math.Vector2.ZERO,
-            finalValue = math.Vector2(0, self._distance),
-            initialRate = self.stateEstimator.getEstimatedVelocity(),
-            avgRate = self._speed)
-        translateMotion = motion.basic.Translate(
-            trajectory = translateTrajectory,
-            frame = Frame.LOCAL)
-
-        self.motionManager.setMotion(translateMotion)
-
-    def exit(self):
-        self.motionManager.stopCurrentMotion()
+class CenterGate(approach.XZCenter):
 
 
-class UpCenter(state.Center):
+class WaitTime(utility.MotionState):
 
     @staticmethod
     def transitions():
-        return { vision.EventType.BUOY_FOUND : UpCenter ,
-                 state.Center.CENTERED : Forward , 
-                 state.Center.TIMEOUT : End }
+        return { motion.basic.MotionState :  }
 
-    def BUOY_FOUND(self, event):
-        self.update(event)
-
-    
-class Forward(state.State):
-
-    @staticmethod
-    def transitions():
-        return { motion.basic.MotionManager.FINISHED : Through,
-                 vision.EventType.BUOY_LOST : Through }
-
-    @staticmethod
-    def getattr():
-        return { 'distance' : 4 , 'speed' : 0.3 }
-
-    def enter(self):
-        translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
-            initialValue = math.Vector2.ZERO,
-            finalValue = math.Vector2(self._distance, 0),
-            initialRate = self.stateEstimator.getEstimatedVelocity(),
-            avgRate = self._speed)
-        translateMotion = motion.basic.Translate(
-            trajectory = translateTrajectory,
-            frame = Frame.LOCAL)
-
-        self.motionManager.setMotion(translateMotion)
-
-class Through(state.State):
-
-    @staticmethod
-    def transitions():
-        return { motion.basic.MotionManager.FINISHED : End }
-
-    @staticmethod
-    def getattr():
-        return { 'distance' : 1 , 'speed' : 0.3 }
-
-    def enter(self):
-        translateTrajectory = motion.trajectories.Vector2CubicTrajectory(
-            initialValue = math.Vector2.ZERO,
-            finalValue = math.Vector2(self._distance, 0),
-            initialRate = self.stateEstimator.getEstimatedVelocity(),
-            avgRate = self._speed)
-        translateMotion = motion.basic.Translate(
-            trajectory = translateTrajectory,
-            frame = Frame.LOCAL)
-
-        self.motionManager.setMotion(translateMotion)
 
 class End(state.State):
     def enter(self):
+        self.visionSystem.buoyDetectorOff()
         self.publish(COMPLETE, core.Event())

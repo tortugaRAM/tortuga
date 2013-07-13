@@ -10,6 +10,7 @@ from ext.control import yawVehicleHelper
 DONE = core.declareEventType('DONE')
 YAWED = core.declareEventType('YAWED')
 
+
 #parameter lookup function
 #you is self, name is parameter to look up, default is default output
 def getConfig(you,name,default):
@@ -50,7 +51,7 @@ class MotionState(state.State):
         # Dive
         diveMotion = motion.basic.ChangeDepth(
             trajectory = diveTrajectory)
-        # Dive
+# Dive
         diveMotion = motion.basic.ChangeDepth(trajectory = diveTrajectory)
         self.motionManager.setMotion(diveMotion)
         self._mYaw = False
@@ -67,7 +68,7 @@ class MotionState(state.State):
             frame = Frame.LOCAL)
         self.motionManager.setMotion(translateMotion)
         self._mYaw = False
-            
+        
 #rotate to global orientation of deg degrees, ending after time t has passed
     def yawGlobal(self,deg,t):
         currentOrientation = self.stateEstimator.getEstimatedOrientation()
@@ -82,7 +83,7 @@ class MotionState(state.State):
         self.timer = self.timerManager.newTimer(YAWED, self._delay)
         self.timer.start()
         self._mYaw = True
-            
+        
 #rotate to local orientation of deg degrees, ending after time t has passed
     def yaw(self,deg,t):
         currentOrientation = self.stateEstimator.getEstimatedOrientation()
@@ -103,6 +104,8 @@ class MotionState(state.State):
                 self.publish(DONE,core.Event())
     def YAWED(self,event):
             self.publish(DONE,core.Event())
+    def YAWED(self,event):
+        self.publish(DONE,core.Event())
             
 #end motionState
 

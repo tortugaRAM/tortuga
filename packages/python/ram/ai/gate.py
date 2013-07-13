@@ -212,6 +212,7 @@ class GateReacquire(state.State):
 
     def enter(self):
         global lastLocation
+        global lastVisionEvent # not used at the moment
         global lastDepth
         #TranslateMotion
         XYCorrectionTrajectory = motion.trajectories.Vector2CubicTrajectory(
