@@ -13,6 +13,8 @@
 // STD Includes
 #include <list>
 #include <map>
+#include <string>
+
 
 // Project Includes
 #include "core/include/ConfigNode.h"
@@ -21,8 +23,12 @@
 #include "vision/include/BlobDetector.h"
 #include "vision/include/TrackedBlob.h"
 #include "vision/include/Symbol.h"
+#include "opencv2/nonfree/features2d.hpp"
+#include "opencv2/features2d/features2d.hpp"
+
 // Must be included last
 #include "vision/include/Export.h"
+
 
 namespace ram {
 namespace vision {
@@ -33,6 +39,7 @@ class RAM_EXPORT BinDetector : public Detector
 	{
 		cv::Point2f vertices[4];
 	};
+
 	struct bincontours
 	{
 		int area;
@@ -44,7 +51,15 @@ class RAM_EXPORT BinDetector : public Detector
 		double minX;
 		bool found;
 		cv::Point2f vertices[4];
+		int centerx;
+		int centery;
+		bool identified;
+		int type;
+		double angle;
+		double width;
+		double height;
 	};
+	
 
   public:
     class Bin : public TrackedBlob
@@ -360,12 +375,46 @@ class RAM_EXPORT BinDetector : public Detector
     /** Temporary LCH Image */
     OpenCVImage* m_frame;
 
+	int m_framecount;
 	/**Kate changes*/
 	void DetectorContours(Image* input);
-	bincontours getSquareBlob(cv::Mat erosion_dst);
+	void getSquareBlob(cv::Mat erosion_dst, bincontours* bins, int  numberoftrackedcontours);
+	int FindMatches(cv::Mat image, double* avgDistance, cv::Mat* descriptors_object);
+	void calcTrainingData(void);
+	int getTrainingData(cv::Mat* descriptors_object);
+	void saveTrainingImages(cv::Mat* finalresize);
+	void publishFoundEventSURF(bincontours bin);
+	void publishLostEvent(Symbol::SymbolType color);
 	cv::Mat img_whitebalance;
 	//cv::Mat img_saturation;
 	bincontours m_bin;
+	//for surf featurs
+	int m_minHessian; //used for finding keypoints
+	std::string m_binyml;
+
+	int m_numberofclasses; //four different bins
+	int m_numberoftrainingimages; //number of training images PER CLASS - so a total of 40 images
+	std::string m_filepath; //where the training iamges are located
+	std::string m_filetype; //type of image file example ".png"
+	std::string m_underscore; //just an underscore "_"
+	std::string m_D;
+	bool m_calcTraining;
+	bool m_comparebins;
+	bool m_saveimages;
+	std::string m_trainingpath; //path to where teh images (not quite training images) will be saved
+	double m_upperlimit; //upper threshold for bin detection
+
+	bool m_BinoutlineFound;
+	bool m_Bin37Found;
+	bool m_Bin98Found;
+	bool m_Bin10Found;
+	bool m_Bin16Found;
+	bool m_BinoutlineFoundBefore;
+	bool m_Bin37FoundBefore;
+	bool m_Bin98FoundBefore;
+	bool m_Bin10FoundBefore;
+	bool m_Bin16FoundBefore;
+
 };
 
 } // namespace vision

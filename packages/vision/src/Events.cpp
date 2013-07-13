@@ -205,6 +205,7 @@ core::EventPtr PipeEvent::clone()
     PipeEventPtr event = PipeEventPtr(new PipeEvent());
     copyInto(event);
     event->id = id;
+    event->range = range;
     event->x = x;
     event->y = y;
     event->angle = angle;
@@ -220,6 +221,7 @@ core::EventPtr BinEvent::clone()
     event->y = y;
     event->symbol = symbol;
     event->angle = angle;
+    event->range = range;
     return event;
 }
 
@@ -286,6 +288,7 @@ core::EventPtr TargetEvent::clone()
     event->squareNess = squareNess;
     event->range = range;
     event->color = color;
+    event->angle = angle;
     return event;
 }
 

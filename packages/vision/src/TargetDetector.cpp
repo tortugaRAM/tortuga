@@ -248,6 +248,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 		m_color = Color::GREEN;
 		setPublishData(squareGreen,input);
 		publishFoundEvent();
+		m_range = squareGreen.outline.size.width;
 		// Notify every that we have found the target
 	}
 	else if (m_greenFound == true)
@@ -265,6 +266,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 		m_redFound = TRUE;
 		m_found = true;
 		m_color = Color::RED;
+		m_range = squareRed.outline.size.width;
 		setPublishData(squareRed,input);
 		publishFoundEvent();
 		// Notify every that we have found the target
@@ -284,6 +286,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 		m_found = true;
 		m_color = Color::YELLOW;
 		setPublishData(squareYellow,input);
+		m_range = squareYellow.outline.size.width;
 		publishFoundEvent();
 		// Notify every that we have found the target
 	}
@@ -301,6 +304,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 		m_blueFound = TRUE;
 		m_found = true;
 		m_color = Color::BLUE;
+		m_range = squareBlue.outline.size.width;
 		setPublishData(squareBlue,input);
 		publishFoundEvent();
 		// Notify every that we have found the target
@@ -318,10 +322,12 @@ void TargetDetector::processColorImage(Image* input, Image* output)
     int tempy=0;
     int centerX =0;
     int centerY=0;
+    int mainpanelrange = 0;
     //find center of the entire panel
     if (m_greenFound == TRUE || m_redFound == TRUE || m_blueFound ==TRUE || m_yellowFound == TRUE)
 	{
 	  m_found = 1;
+	  mainpanelrange = 0;
 	  //have found atleast one panel and therefore I can estimate  the center of the panel
 	  
 		if (m_greenFound == TRUE)
@@ -331,7 +337,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 			tempx = 100000;
 			tempy = 0;
 			squareGreen.outline.points(vertices);
-			
+			mainpanelrange = mainpanelrange+ squareGreen.outline.size.width;
 			for (int i = 0; i < 4; i++)
 	  		{
 				if (vertices[i].x < tempx)
@@ -350,7 +356,8 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 			tempx = 0;
 			tempy = 0;
 			squareRed.outline.points(vertices);
-			
+			mainpanelrange = mainpanelrange + squareRed.outline.size.width;
+
 			for (int i = 0; i < 4; i++)
 	  		{
 				if (vertices[i].x > tempx)
@@ -369,6 +376,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 			tempx = 100000;
 			tempy = 100000;
 			squareYellow.outline.points(vertices);
+			mainpanelrange = mainpanelrange + squareYellow.outline.size.width;
 			
 			for (int i = 0; i < 4; i++)
 	  		{
@@ -388,6 +396,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 			tempx = 0;
 			tempy = 100000;
 			squareBlue.outline.points(vertices);
+			mainpanelrange = mainpanelrange + squareBlue.outline.size.width;
 			
 			for (int i = 0; i < 4; i++)
 	  		{
@@ -410,6 +419,12 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 		                               m_targetCenterX,
 		                               m_targetCenterY);
 		m_color = Color::UNKNOWN;
+		mainpanelrange = ((mainpanelrange)/(numberofpanels))*2;
+		m_range = mainpanelrange;
+
+	
+
+
 		publishFoundEvent();
 	} //end have found some of the panel
 	
@@ -724,7 +739,9 @@ void TargetDetector::publishFoundEvent()
 				m_smallflag,
 				m_rangelarge,
 				m_rangesmall,
+				m_angle,
 				  m_color));
+				
         
         publish(EventType::TARGET_FOUND, event);
 }
@@ -800,15 +817,21 @@ void TargetDetector::setPublishData(targetPanel square, Image* input)
 	              m_targetCenterX,
                       m_targetCenterY);
 	// Determine range
-	m_range = 1.0 - (((double)square.outline.size.width) /
-	                 ((double)square.outline.size.height));
+	//m_range = 1.0 - (((double)square.outline.size.width) /
+	//                 ((double)square.outline.size.height));
+	
+	//m_range = square.outline.size.width;
+	//m_range is assigned before now
 	// Determine the squareness
+	
 	double aspectRatio = ((double)square.outline.size.height)/((double)square.outline.size.width);
 	if (aspectRatio < 1)
 	    m_squareNess = 1.0;
 	else
 	    m_squareNess = 1.0/aspectRatio;
 
+
+	m_angle = square.outline.angle;
 	//plot pretty results
 	for (int i = 0; i < 4; i++)
   		line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(0,255,0));
