@@ -17,6 +17,7 @@
 #include "cxcore.h"
 #include "highgui.h"
 
+#include <log4cpp/Category.hh>
 #include <boost/foreach.hpp>
 #include <boost/bind.hpp>
 
@@ -28,6 +29,7 @@
 #include "vision/include/Events.h"
 #include "vision/include/ImageFilter.h"
 #include "vision/include/ColorFilter.h"
+#include "vision/include/Utility.h"
 #include "vision/include/TableColorFilter.h"
 #include "vision/include/WhiteBalance.h"
 #include "vision/include/BuoyDetectorKate.h"
@@ -46,6 +48,9 @@ namespace vision {
 //{
 //    return b1.distanceTo(0,0) < b2.distanceTo(0,0);/
 //}
+
+static log4cpp::Category& logger(log4cpp::Category::getInstance("PipeDetector"));
+
     
 OrangePipeDetector::OrangePipeDetector(core::ConfigNode config,
                                        core::EventHubPtr eventHub) :
@@ -55,6 +60,7 @@ OrangePipeDetector::OrangePipeDetector(core::ConfigNode config,
     m_lookupTablePath("")
 {
     init(config);
+  logger.info("Starting Pipe Detector");
 }
     
 void OrangePipeDetector::init(core::ConfigNode config)
@@ -66,11 +72,14 @@ void OrangePipeDetector::init(core::ConfigNode config)
     m_filter = new ColorFilter(0, 255, 0, 255, 0, 255);
     m_useLUVFilter = false;
     
+
     // Detection variables
     // NOTE: The property set automatically loads the value from the given
     //       config if its present, if not it uses the default value presented.
     core::PropertySetPtr propSet(getPropertySet());
 
+//commented out purely to clean up VisionToolV2 for use with contours
+/*
     propSet->addProperty(config, false, "centeredLimit",
         "Max distance from the center for the pipe to be considered centered",
         0.1, &m_centeredLimit);
@@ -78,11 +87,11 @@ void OrangePipeDetector::init(core::ConfigNode config)
     propSet->addProperty(config, false, "minBrightness",
         "Minimum brighness for orange",
         100, &m_minBrightness, 0, 255);
-
+*/
     propSet->addProperty(config, false, "erodeIterations",
         "How many times to erode the filtered image",
         1, &m_erodeIterations);
-
+/*
     propSet->addProperty(config, false, "openIterations",
                          "How many times to perform the open morphological operation",
                          0, &m_openIterations);
@@ -94,13 +103,13 @@ void OrangePipeDetector::init(core::ConfigNode config)
         "Red/Green maximum ratio", 2.0, &m_rOverGMax, 0.0, 5.0);
     propSet->addProperty(config, false, "bOverRMax",
         "Blue/Red maximum ratio",  0.4, &m_bOverRMax, 0.0, 5.0);
-
+*/
     propSet->addProperty(config, false, "MaxAspectRatio",
         "MaxAspectRatio",  5.0, &m_maxAspectRatio, 0.0, 10.0);
 
     propSet->addProperty(config, false, "MinSize",
         "MinSize",  15, &m_minSize, 0, 500);
-
+/*
 
     // Newer Color filter properties
     propSet->addProperty(config, false, "useLUVFilter",
@@ -118,6 +127,7 @@ void OrangePipeDetector::init(core::ConfigNode config)
                                  0, 129,  // L defaults
                                  14, 200,  // U defaults
                                  126, 255); // V defaults
+*/
     m_framenumber = 0;
     // Make sure the configuration is valid
     //propSet->verifyConfig(config, true);
@@ -128,6 +138,7 @@ void OrangePipeDetector::init(core::ConfigNode config)
                                     "RedH", "Red Hue",
                                     70, 255, 0, 255,0, 90);
 
+  logger.info("Got values maybe");
 
 }
 
@@ -205,7 +216,7 @@ void OrangePipeDetector::setUseLUVFilter(bool value)
 
 OrangePipeDetector::~OrangePipeDetector()
 {
-    delete m_filter;
+    delete m_redFilter;
 
     if ( m_colorFilterLookupTable )
         delete m_tableColorFilter;
@@ -308,9 +319,11 @@ pipe
 	Mat  erode_dst_red;
 
 	//red
+	logger.infoStream() << " Filtering Color";
 	Mat img_red =blob.OtherColorFilter(hsv_planes,red_minH,red_maxH);	
 	if (red_minS != 0 || red_maxS != 255)	
 	{
+		logger.infoStream() << " Filtering Saturaiton Channel";
 		img_saturation = blob.SaturationFilter(hsv_planes,red_minS,red_maxS);
 		bitwise_and(img_saturation,img_red,temp_red,noArray());
 		img_red = temp_red;
@@ -318,6 +331,7 @@ pipe
 	}
 	if (red_minL != 0 || red_maxL != 255)	
 	{
+		logger.infoStream() << " Filtering Luminance Channel";
 		Mat img_Luminance_red = blob.LuminanceFilter(hsv_planes,red_minL,red_maxL);
 		bitwise_and(img_Luminance_red,img_red,temp_red,noArray());
 		img_red = temp_red;
@@ -327,31 +341,38 @@ pipe
 	//imshow("red",erode_dst_red);
 
 	//get Blobs 
-	//needs to be able to handle multiple pipes
+        logger.infoStream() << "Have filtered image with rows= " << erode_dst_red.rows<<" col= "<< erode_dst_red.cols <<" \n ";
+
+
 	foundpipe finalpipe;
 	finalpipe= getSquareBlob(erode_dst_red);
 
 	if (finalpipe.found == true)
-	{	
+	{	logger.infoStream() << " Pipe1 found going to publish Data";
 		m_foundpipe1 = true;
-	//	publishFoundEvent(finalpipe,1);
+		publishFoundEvent(finalpipe,finalpipe.id,input);
 	}
 	else if (m_foundpipe1 == true)
 	{
+
+		logger.infoStream() << " Pipe1 Lost publishing lost even";
 		//lost event
 		m_foundpipe1= false;
-	//	publishLostEvent(1);
+		publishLostEvent(1);
 	}
 	if (finalpipe.found2 == true)
 	{	
+
+		logger.infoStream() << " Pipe2 found going to publish Data";
 		m_foundpipe2 = true;
-	//	publishFoundEvent(finalpipe,2);
+		publishFoundEvent(finalpipe,finalpipe.id2,input);
 	}
 	else if (m_foundpipe2== true)
 	{
 		//lost event
+		logger.infoStream() << " Pipe1 Lost publishing lost even";
 		m_foundpipe2 = false;
-	//	publishLostEvent(2);
+		publishLostEvent(2);
 	}	
 
 }
@@ -380,7 +401,10 @@ OrangePipeDetector::foundpipe OrangePipeDetector::getSquareBlob(Mat erosion_dst)
 	double area;
 	double desiredAspectRatio = 5.0;
 	Point2f vertices[4];
-	int minX,maxX,minY,maxY; //for calculating the angle
+	int maxdistance, maxdistance2,distance;
+	int midpointx,midpointy;
+	int midpointx1,midpointy1,midpointx2,midpointy2;
+	double rise, run;
 
 	for(unsigned int j=0; j<contours.size(); j++)
 	{
@@ -407,6 +431,8 @@ OrangePipeDetector::foundpipe OrangePipeDetector::getSquareBlob(Mat erosion_dst)
 		}
 	};
 
+
+//Get info for first pipe
 	if (maxArea  > m_minSize)
 	{
 		maxtemp.points(vertices);
@@ -414,34 +440,72 @@ OrangePipeDetector::foundpipe OrangePipeDetector::getSquareBlob(Mat erosion_dst)
 		//allocate data
 		finalpipe.found = true;
 		finalpipe.id = 1;
-		finalpipe.centerx = maxtemp.center.x;
-		finalpipe.centery = maxtemp.center.y;
+		finalpipe.centerx = (int)maxtemp.center.x;
+		finalpipe.centery = (int)maxtemp.center.y;
 		finalpipe.range = maxtemp.size.width;
-		finalpipe.angle = maxtemp.angle; //maxtemp.angle doesn't work well since its not absolute
-						  //want angle of height!
-		
 
-		//Display Purposes
-				minX = 1000;
-		maxX = 0;
-		maxY = 0;
-		minY = 100;
+		maxdistance = 0;
+		maxdistance2 = 0;
+
+		//angle calculation
+		//can find midpoints of each of the vertices- two with the furthest distance (just subtracting the x and yvalues) are the longest
+		//average the angle between teh center and those
+
+		circle(img_whitebalance, maxtemp.center,15,Scalar( 0, 255, 0),-1,8 ); //Center
+
+		//calculate the angle and draw
 		for (int i = 0; i < 4; i++)
-		{
-			if (vertices[i].x < minX)
-				minX=vertices[i].x;
-			if (vertices[i].x > maxX)
-				maxX=vertices[i].x;
-			if (vertices[i].y < minY)
-				minY=vertices[i].y;
-			if (vertices[i].y < maxY)
-				maxY=vertices[i].y;
-			
-			
+		{	
 		    line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(0,255,0),5);
+			midpointx=(int)((vertices[i].x+vertices[(i+1)%4].x)/2);
+			midpointy =(int)((vertices[i].y+vertices[(i+1)%4].y)/2);
+
+			circle(img_whitebalance, Point(midpointx, midpointy),5,Scalar( 0, 255, 255),-1,8 );
+			distance = abs(maxtemp.center.x-midpointx)+abs(maxtemp.center.y-midpointy);
+			if (distance > maxdistance)
+			{
+				maxdistance2 = maxdistance;
+				midpointx2=midpointx1;
+				midpointy2=midpointy1;
+				maxdistance = distance;
+				midpointx1 = midpointx;
+				midpointy1 = midpointy;
+			}
+			else if (distance > maxdistance2)
+			{
+				maxdistance2 = distance;
+				midpointx2 = midpointx;
+				midpointy2 = midpointy;
+			}
 		}
+		//lower point always first
+		rise = (midpointy2-midpointy1);
+		run = (midpointx2-midpointx1);
+	
+		if (run != 0)
+		{
+			finalpipe.angle =atan((double)rise/(double)run)*(180.0/3.14);
+			if (finalpipe.angle < 0)
+			{
+				finalpipe.angle = finalpipe.angle + 90; //correction to make vertical = 0
+			}
+			else if (finalpipe.angle > 0)
+			{
+				finalpipe.angle = finalpipe.angle -90; //correction to make vertical = 0
+			}		
+		}		
+		else
+		{
+			finalpipe.angle = 0;
+		}
+
+
+		//printf("\n pipe angle = %f",finalpipe.angle);
+
+		line(img_whitebalance,Point(midpointx1,midpointy1),Point(midpointx2,midpointy2),Scalar(150,0,0),5);
 		drawContours(img_whitebalance, contours, maxContour, Scalar(255,0,0), 2, 8, hierarchy, 0, Point() ); 
 
+       		logger.infoStream() << "FoundLine: at" <<finalpipe.centerx  << "," << finalpipe.centery << " with angle"  << finalpipe.angle << " and range"  << finalpipe.range << " ";
 	}
 	else	
 	{
@@ -451,69 +515,136 @@ OrangePipeDetector::foundpipe OrangePipeDetector::getSquareBlob(Mat erosion_dst)
 		finalpipe.centery =0;
 		finalpipe.range = 0;
 		finalpipe.angle = 0;
-	}
+		finalpipe.id = 0;
 
-	if (maxContour == maxContour2)
+       		logger.infoStream() << "Unable to find single line in ORangePipeDetector";
+
+	} 
+
+
+	if (maxContour == maxContour2 && maxContour != 0)
 	{
 		printf("\nERROR REPORTING THE SAME CONTOUR TWICE");
-	}
-	printf("\n Pipe1 angle = %f should be = %f",finalpipe.angle,maxtemp.angle);
-	if (maxArea2  >m_minSize)
+	} 
+	else if (maxArea2  > m_minSize)
 	{
-		
 		maxtemp2.points(vertices);
 	
 		//allocate data
+		
 		finalpipe.found2 = true;
 		finalpipe.id2 = 2;
-		finalpipe.centerx2 = maxtemp.center.x;
-		finalpipe.centery2 = maxtemp.center.y;
-		finalpipe.range2 = maxtemp.size.width;
-		finalpipe.angle2 = maxtemp.angle;
+		finalpipe.centerx2 = (int)maxtemp2.center.x;
+		finalpipe.centery2 = (int)maxtemp2.center.y;
+		finalpipe.range2 = maxtemp2.size.width;
 
-		//Display Purposes
+		maxdistance = 0;
+		maxdistance2 = 0;
+
+		//angle calculation
+		//can find midpoints of each of the vertices- two with the furthest distance (just subtracting the x and yvalues) are the longest
+		//average the angle between teh center and those
+
+		circle(img_whitebalance, maxtemp2.center,15,Scalar( 0, 255, 0),-1,8 ); //Center
+
+		//calculate the angle and draw
 		for (int i = 0; i < 4; i++)
+		{	
 		    line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(255,255,0),5);
-		drawContours(img_whitebalance, contours, maxContour2, Scalar(255,255,0), 2, 8, hierarchy, 0, Point() );
+			midpointx=(int)((vertices[i].x+vertices[(i+1)%4].x)/2);
+			midpointy =(int)((vertices[i].y+vertices[(i+1)%4].y)/2);
+
+			circle(img_whitebalance, Point(midpointx, midpointy),5,Scalar( 0, 255, 255),-1,8 );
+			distance = abs(maxtemp2.center.x-midpointx)+abs(maxtemp2.center.y-midpointy);
+			if (distance > maxdistance)
+			{
+				maxdistance2 = maxdistance;
+				midpointx2=midpointx1;
+				midpointy2=midpointy1;
+				maxdistance = distance;
+				midpointx1 = midpointx;
+				midpointy1 = midpointy;
+			}
+			else if (distance > maxdistance2)
+			{
+				maxdistance2 = distance;
+				midpointx2 = midpointx;
+				midpointy2 = midpointy;
+			}
+		}
+		//lower point always first
+		rise = (midpointy2-midpointy1);
+		run = (midpointx2-midpointx1);
+	
+		if (run != 0)
+		{
+			finalpipe.angle2 =atan((double)rise/(double)run)*(180.0/3.14);
+
+		}		
+		else
+		{
+			finalpipe.angle2 = 90;
+		}
+
+		line(img_whitebalance,Point(midpointx1,midpointy1),Point(midpointx2,midpointy2),Scalar(150,0,0),5);
+		drawContours(img_whitebalance, contours, maxContour2, Scalar(255,0,0), 2, 8, hierarchy, 0, Point() ); 
+
+       		logger.infoStream() << "2nd FoundLine: at" <<finalpipe.centerx2  << "," << finalpipe.centery2 << " with angle"  << finalpipe.angle2 
+				<< " and range"  << finalpipe.range2 << " ";
+
 	}
 	else	
 	{
 		//printf("\n unable to find pipe");
 		finalpipe.found2 = false;
-		finalpipe.id2 = 2;
 		finalpipe.centerx2 =0;
 		finalpipe.centery2 =0;
 		finalpipe.range2 = 0;
 		finalpipe.angle2 = 0;
+		finalpipe.id2=0;
+
+  		logger.infoStream() << "Unable to find SECOND line in ORangePipeDetector";
+
 	}
-	 //imshow("final",img_whitebalance); 
 	return(finalpipe);
 }
 
-void OrangePipeDetector::publishFoundEvent(foundpipe pipe, int id)
+void OrangePipeDetector::publishFoundEvent(foundpipe pipe, int id, Image* input)
 {
     PipeEventPtr event(new PipeEvent()); 
     double centerX = 0, centerY = 0;
-	 
+
+	logger.infoStream() << " Publishing Event pipe id = "<<pipe.id<<" center : "<<pipe.centerx <<" , "<<pipe.centery <<"range "<<pipe.range<<" angle "<<pipe.angle;
+	logger.infoStream() << " Publishing Event pipe id = "<<pipe.id2<<" center : "<<pipe.centerx2 <<" , "<<pipe.centery2 <<"range "<<pipe.range2<<" angle "<<pipe.angle2;
+
+
 	if (id == 1)
 	{
-	    Detector::imageToAICoordinates(frame, pipe.centerx, pipe.centery,
+	    Detector::imageToAICoordinates(input, pipe.centerx, pipe.centery,
 		                           centerX, centerY);
+	
+	    event-> id =id;	    
 	    event->x = centerX;
 	    event->y = centerY;
 	    event->range = pipe.range;
 	    event->angle = pipe.angle;
+	    publish(EventType::PIPE_FOUND, event);
+		logger.infoStream() << " Publishing ID 1";
+
 	}
-	else
+	else if (id == 2)
 	{
-	    Detector::imageToAICoordinates(frame, pipe.centerx2, pipe.centery2,
-		                           centerX, centerY);
+	    Detector::imageToAICoordinates(input, pipe.centerx2, pipe.centery2,
+	                             centerX, centerY);
+	    event-> id = id;
 	    event->x = centerX;
 	    event->y = centerY;
 	    event->range = pipe.range2;
 	    event->angle = pipe.angle2;
+	    publish(EventType::PIPE_FOUND, event);
+	    logger.infoStream() << " Publishing ID 2"; 
 	}
-    publish(EventType::PIPE_FOUND, event);
+
 }
 
 void OrangePipeDetector::publishLostEvent(int number)
@@ -526,8 +657,6 @@ void OrangePipeDetector::publishLostEvent(int number)
 
 void OrangePipeDetector::processImage(Image* input, Image* output)
 {
-	//printf("Step 1");
-	//printf("ready?");
 	DetectorContours(input);
 
 	 if(output)
@@ -540,11 +669,11 @@ void OrangePipeDetector::processImage(Image* input, Image* output)
 		//imshow("rederosion",erode_dst_red);
 		if (!img_whitebalance.data)	
 		{
-			printf("\n ERROR NO WHITEBALANCE");
+			printf("ERROR NO WHITEBALANCE");
 		}
 		else
 		{	
-			imshow("color",img_whitebalance);
+			//imshow("color",img_whitebalance);
 		        input->setData(img_whitebalance.data,false);
 		       //frame->copyFrom(input);
 		       output->copyFrom(input);

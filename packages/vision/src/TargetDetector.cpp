@@ -22,6 +22,7 @@ so, it returns multiple events because there are multiple colors
 #include "highgui.h"
 #include <boost/foreach.hpp>
 #include <boost/bind.hpp>
+#include <log4cpp/Category.hh>
 
 // Project Includes
 #include "vision/include/TargetDetector.h"
@@ -30,6 +31,7 @@ so, it returns multiple events because there are multiple colors
 #include "vision/include/OpenCVImage.h"
 #include "vision/include/Events.h"
 #include "vision/include/ColorFilter.h"
+#include "vision/include/Utility.h"
 
 #include "core/include/PropertySet.h"
 
@@ -40,10 +42,13 @@ so, it returns multiple events because there are multiple colors
 namespace ram {
 namespace vision {
 
+static log4cpp::Category& logger(log4cpp::Category::getInstance("CupidDetector"));
+
+    
 TargetDetector::TargetDetector(core::ConfigNode config,
                                core::EventHubPtr eventHub) :
     Detector(eventHub),
-    m_filter(new ColorFilter(0, 255, 0, 255, 0, 255)),
+    m_redFilter(new ColorFilter(0, 255, 0, 255, 0, 255)),
     m_image(new OpenCVImage(640, 480)),
     m_found(false),
     m_targetCenterX(0),
@@ -57,6 +62,7 @@ TargetDetector::TargetDetector(core::ConfigNode config,
     m_topRemovePercentage(0),
     m_bottomRemovePercentage(0)
 {
+    logger.info("Starting Target Detector");
     init(config);
 }
     
@@ -68,6 +74,7 @@ void TargetDetector::init(core::ConfigNode config)
     core::PropertySetPtr propSet(getPropertySet());
 
     // Hack properties to deal noise from the surface of the water
+
     propSet->addProperty(config, false, "topRemovePercentage",
                          "% of the screen from the top to be blacked out",
                          0.0, &m_topRemovePercentage, 0.0, 1.0);
@@ -85,7 +92,7 @@ void TargetDetector::init(core::ConfigNode config)
                          "How \"fat\" a blob can be",
                          0.3, &m_minAspectRatio, 0.0, 1.0);
 
-    
+  
     propSet->addProperty(config, false, "minGreenPixels",
                          "The minimum pixel count of the green target blob",
                          500, &m_minGreenPixels, 0, 50000);
@@ -99,6 +106,7 @@ void TargetDetector::init(core::ConfigNode config)
                          0, &m_dilateIterations, 0, 10);
 
     // Color filter properties
+    m_filter =new ColorFilter(0, 255, 0, 255, 0, 255);
     m_filter->addPropertiesToSet(propSet, &config,
                                  "Blue", "L*",
                                  "Yellow", "Blue Chrominance",
@@ -107,13 +115,38 @@ void TargetDetector::init(core::ConfigNode config)
                                  0, 44,  // U defaults (0, 75)
                                  27, 63); // V defaults (137, 181)
 
-//Kate edit: trying to edit the VisionToolV2 gui to allow sliders    
-	propSet->addProperty(config, false, "Min H Red Value",
-                         "min",
-                         9, &m_redminH, 0, 255);
-	propSet->addProperty(config, false, "Max H Red Value",
-                         "max",
-                         127, &m_redmaxH, 0, 255);
+    m_redFilter = new ColorFilter(0, 255, 0, 255, 0, 255);
+    m_redFilter->addPropertiesToSet(propSet, &config,
+                                    "RedH", "RedH",
+                                    "RedS", "RedS",
+                                    "RedV", "RedV",
+                                    18, 145, 0, 255,0, 255);
+    m_greenFilter = new ColorFilter(0, 255, 0, 255, 0, 255);
+    m_greenFilter->addPropertiesToSet(propSet, &config,
+                                    "GreenH", "GreenH",
+                                    "GreenS", "GreenS",
+                                    "GreenV", "GreenV",
+                                    25, 80, 0, 255, 0, 255);
+    m_yellowFilter = new ColorFilter(0, 255, 0, 255, 0, 255);
+    m_yellowFilter->addPropertiesToSet(propSet, &config,
+                                    "YellowH", "YellowH",
+                                    "YellowS", "YellowS",
+                                    "YellowV", "YellowS",
+                                    15, 45, 0, 255, 0,255);
+
+    m_blueFilter = new ColorFilter(0, 255, 0, 255, 0, 255);
+    m_blueFilter->addPropertiesToSet(propSet, &config,
+                                    "BlueH", "BlueH",
+                                    "BlueS", "BlueS",
+                                    "BlueV", "BlueV",
+                                    75, 190, 99, 255, 0, 255);
+
+
+	m_framenumber = 0;
+
+
+
+
 
     /// TODO: add a found pixel drop off
 	m_greenFound = FALSE;
@@ -126,6 +159,11 @@ void TargetDetector::init(core::ConfigNode config)
                          "MinSize",
                          6, &m_minSize, 6, 500); //must be atleast 5
 
+
+    propSet->addProperty(config, false, "MinContourSize",
+                         "MinContourSize", 6, &m_minContourSize, 6, 500); //must be atleast 5
+
+
     // Make sure the configuration is valid
     //propSet->verifyConfig(config, true);
 }
@@ -133,6 +171,10 @@ void TargetDetector::init(core::ConfigNode config)
 TargetDetector::~TargetDetector()
 {
     delete m_image;
+  //  delete m_redFilter;
+  //  delete m_greenFilter;
+  //  delete m_yellowFilter;
+   // delete m_blueFilter;
 }
 
 bool TargetDetector::found()
@@ -191,8 +233,11 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 	//saturation finds the entire rectangle
 	//so, we look for blobs in each filter, and then make sure the red,yellow, and green are within the blue
 	//thats our verification, and how we'll get the blue blob
+
+	m_framenumber = m_framenumber+1;
 	
 	//get min and max values for the color filters	
+	/*
 	int red_maxH = m_redmaxH;
 	int red_minH = m_redminH;
 	int green_maxH = m_filter->getChannel3High();
@@ -202,11 +247,169 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 	double blue_maxS = m_filter->getChannel1High();
 	double blue_minS = m_filter->getChannel1Low();
 	int erosion_size = m_erodeIterations;
+	*/
+
+	int erosion_type = 0; //morph rectangle type of erosion
+	int erosion_size = m_erodeIterations;
+	Mat element = getStructuringElement( erosion_type,
+                                       Size( 2*erosion_size + 1, 2*erosion_size+1 ),
+                                       Point( erosion_size, erosion_size ) );
+
+	int red_minV =m_redFilter->getChannel3Low();
+	int red_maxV =m_redFilter->getChannel3High();
+
+	int red_maxS =m_redFilter->getChannel2High();
+	int red_minS =m_redFilter->getChannel2Low();
+
+	int red_maxH =m_redFilter->getChannel1High();
+	int red_minH =m_redFilter->getChannel1Low();
+
+	int yellow_minV = m_yellowFilter->getChannel3Low();
+	int yellow_maxV = m_yellowFilter->getChannel3High();
+
+	int yellow_maxS = m_yellowFilter->getChannel2High();
+	int yellow_minS = m_yellowFilter->getChannel2Low();
+
+	int yellow_maxH = m_yellowFilter->getChannel1High();
+	int yellow_minH = m_yellowFilter->getChannel1Low();
+
+	int green_minV= m_greenFilter->getChannel3Low();
+	int green_maxV= m_greenFilter->getChannel3High();
+
+	int green_minS = m_greenFilter->getChannel2Low();
+	int green_maxS = m_greenFilter->getChannel2High();
+
+	int green_minH = m_greenFilter->getChannel1Low();
+	int green_maxH = m_greenFilter->getChannel1High();
+
+
+	int blue_minV= m_blueFilter->getChannel3Low();
+	int blue_maxV= m_blueFilter->getChannel3High();
+
+	int blue_minS = m_blueFilter->getChannel2Low();
+	int blue_maxS = m_blueFilter->getChannel2High();
+
+	int blue_minH = m_blueFilter->getChannel1Low();
+	int blue_maxH = m_blueFilter->getChannel1High();
+
 
 	Mat img = input->asIplImage();
 	Mat img_hsv;
 
 	img_whitebalance = WhiteBalance(img);
+	logger.infoStream() << "Whitebalance complete row=: "<<img_whitebalance.rows<<" cols= "<<img_whitebalance.cols;
+
+	cvtColor(img_whitebalance,img_hsv,CV_BGR2HSV);
+		
+	vector<Mat> hsv_planes;
+	split(img_hsv,hsv_planes);
+
+	///apply color filters, which are private members of the blobfind class
+	blobfinder blob;
+	
+	//initialize values
+		//temperoary Mat used for merging channels
+	Mat temp_yellow(img_whitebalance.size(),CV_8UC1);
+	Mat temp_red(img_whitebalance.size(),CV_8UC1);
+	Mat temp_green(img_whitebalance.size(),CV_8UC1);
+	Mat temp_blue(img_whitebalance.size(),CV_8UC1); 
+
+	Mat img_saturation(img_whitebalance.size(),CV_8UC1); //size them correctly here
+	Mat img_Luminance(img_whitebalance.size(),CV_8UC1); //size correctly
+	Mat erosion_dst_red(img_whitebalance.size(),CV_8UC1); 
+	Mat erosion_dst_green(img_whitebalance.size(),CV_8UC1); 
+	Mat erosion_dst_blue(img_whitebalance.size(),CV_8UC1); 
+	Mat erosion_dst_yellow(img_whitebalance.size(),CV_8UC1); 
+ 
+	
+	//green
+	Mat img_green =blob.OtherColorFilter(hsv_planes,green_minH,green_maxH);	
+	if (green_minS != 0 || green_maxS != 255)	
+	{
+		img_saturation = blob.SaturationFilter(hsv_planes,green_minS,green_maxS);
+		bitwise_and(img_saturation,img_green,temp_green,noArray());
+		img_green = temp_green;
+	}
+	if (green_minV != 0 || green_maxV != 255)	
+	{
+		img_Luminance = blob.LuminanceFilter(hsv_planes,green_minV,green_maxV);
+		bitwise_and(img_Luminance,img_green,temp_green,noArray());
+		img_green = temp_green;
+	}	
+  	erode(img_green, erosion_dst_green, element);
+
+	//yellow
+	Mat img_yellow =blob.OtherColorFilter(hsv_planes,yellow_minH,yellow_maxH);	
+	if (yellow_minS != 0 || yellow_maxS != 255)	
+	{
+		img_saturation = blob.SaturationFilter(hsv_planes,yellow_minS,yellow_maxS);
+		bitwise_and(img_saturation,img_yellow,temp_yellow,noArray());
+		img_yellow = temp_yellow;
+	}
+	if (yellow_minV != 0 || yellow_maxV != 255)	
+	{
+		img_Luminance = blob.LuminanceFilter(hsv_planes,yellow_minV,yellow_maxV);
+		bitwise_and(img_Luminance,img_yellow,temp_yellow,noArray());
+		img_yellow = temp_yellow;
+	}	
+  	erode(img_yellow, erosion_dst_yellow, element);
+
+	//red
+	Mat img_red =blob.RedFilter(hsv_planes,red_minH,red_maxH);	
+	if (red_minS != 0 || red_maxS != 255)	
+	{
+		img_saturation = blob.SaturationFilter(hsv_planes,red_minS,red_maxS);
+		bitwise_and(img_saturation,img_red,temp_red,noArray());
+		img_red = temp_red;
+		//imshow("Sat ReD",img_saturation);
+	}
+	if (red_minV != 0 || red_maxV != 255)	
+	{
+		Mat img_Luminance_red = blob.LuminanceFilter(hsv_planes,red_minV,red_maxV);
+		bitwise_and(img_Luminance_red,img_red,temp_red,noArray());
+		img_red = temp_red;
+		//imshow("Luminance Red",img_Luminance);
+	}	
+  	erode(img_red, erosion_dst_red, element);
+
+
+
+	//blue
+	Mat img_blue =blob.OtherColorFilter(hsv_planes,blue_minH,blue_maxH);	
+	if (blue_minS != 0 || blue_maxS != 255)	
+	{
+		img_saturation = blob.SaturationFilter(hsv_planes,blue_minS,blue_maxS);
+		bitwise_and(img_saturation,img_blue,temp_blue,noArray());
+		img_blue = temp_blue;
+	}
+	if (blue_minV != 0 || blue_maxV != 255)	
+	{
+		img_Luminance = blob.LuminanceFilter(hsv_planes,blue_minV,blue_maxV);
+		bitwise_and(img_Luminance,img_blue,temp_blue,noArray());
+		img_blue = temp_blue;
+	}	
+  	erode(img_blue, erosion_dst_blue, element);
+	logger.infoStream() << "ColorFiltering Complete";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+	Mat img = input->asIplImage();
+	Mat img_hsv;
+
+	img_whitebalance = WhiteBalance(img);
+
 	cvtColor(img_whitebalance,img_hsv,CV_BGR2HSV);
 		
 	vector<Mat> hsv_planes;
@@ -218,6 +421,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 	Mat img_yellow =blob.OtherColorFilter(hsv_planes,yellow_minH,yellow_maxH);
 	Mat img_red =blob.RedFilter(hsv_planes,red_minH,red_maxH);
 	Mat img_blue =blob.SaturationFilter(hsv_planes,blue_minS,blue_maxS);
+	logger.infoStream() << "\n ColorFiltering Complete";
 
 	//For the erode function, which really helps clean things up
 	int erosion_type = 0; //morph rectangle type of erosion
@@ -228,36 +432,44 @@ void TargetDetector::processColorImage(Image* input, Image* output)
   	/// Apply the erosion operation and then find the contours
 	Mat erosion_dst_red, erosion_dst_green, erosion_dst_blue, erosion_dst_yellow;
   	erode(img_red, erosion_dst_red, element );
-	targetPanel squareRed = getSquareBlob(erosion_dst_red,img_whitebalance);
+*/
+	logger.infoStream() << " Finding Red";
+	targetPanel squareRed = getSquareBlob(erosion_dst_red,img_whitebalance,Color::RED);
 
-  	erode(img_green, erosion_dst_green, element );
-	targetPanel squareGreen = getSquareBlob(erosion_dst_green,img_whitebalance);
+	logger.infoStream() << " Finding Green";
+  	//erode(img_green, erosion_dst_green, element );
+	targetPanel squareGreen = getSquareBlob(erosion_dst_green,img_whitebalance,Color::GREEN);
 
-  	erode(img_yellow, erosion_dst_yellow, element );
-	targetPanel squareYellow = getSquareBlob(erosion_dst_yellow,img_whitebalance);
+	logger.infoStream() << " Finding Yellow";
+  	//erode(img_yellow, erosion_dst_yellow, element );
+	targetPanel squareYellow = getSquareBlob(erosion_dst_yellow,img_whitebalance,Color::YELLOW);
 
-  	erode(img_blue, erosion_dst_blue, element );
-	targetPanel squareBlue = getSquareBlob(erosion_dst_blue,img_whitebalance);
+	logger.infoStream() << " Finding Blue";
+  	//erode(img_blue, erosion_dst_blue, element );
+	targetPanel squareBlue = getSquareBlob(erosion_dst_blue,img_whitebalance,Color::BLUE);
 
 	//NOw that I have the contours, check to see if outer box meets desired aspect ratio
 	Point2f vertices[4];
 	float foundAspectRatio;
+
 	//green event
 	foundAspectRatio = squareGreen.outline.size.height/squareGreen.outline.size.width;
 	if (foundAspectRatio< m_maxAspectRatio && foundAspectRatio > m_minAspectRatio)
 	{ 
 	 	 //valid panel
+	        logger.infoStream() << "Green Target Found";
 		m_greenFound = TRUE;
 		m_found = true;
 		m_color = Color::GREEN;
+		m_range = squareGreen.outline.size.width;
 		setPublishData(squareGreen,input);
 		publishFoundEvent();
-		m_range = squareGreen.outline.size.width;
 		// Notify every that we have found the target
 	}
 	else if (m_greenFound == true)
 	{
         	// Just lost the light so issue a lost event
+	        logger.infoStream() << "Green Target Lost";
     		publish(EventType::TARGET_LOST, core::EventPtr(new core::Event()));
 		m_greenFound = false;
 	}
@@ -267,6 +479,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 	if  (foundAspectRatio< m_maxAspectRatio && foundAspectRatio > m_minAspectRatio)
 	{ 
 	 	 //valid panel
+	        logger.infoStream() << " Red Target Found";
 		m_redFound = TRUE;
 		m_found = true;
 		m_color = Color::RED;
@@ -278,6 +491,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 	else if (m_redFound == true)
 	{
         	// Just lost the light so issue a lost event
+	        logger.infoStream() << "Red Target Found";
     		publish(EventType::TARGET_LOST, core::EventPtr(new core::Event()));
 		m_redFound = false;
 	}
@@ -286,6 +500,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 	if  (foundAspectRatio< m_maxAspectRatio && foundAspectRatio > m_minAspectRatio)
 	{ 
 	 	 //valid panel
+	        logger.infoStream() << " Yellow Target Found";
 		m_yellowFound = TRUE;
 		m_found = true;
 		m_color = Color::YELLOW;
@@ -296,6 +511,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 	}
 	else if (m_yellowFound == true)
 	{
+	        logger.infoStream() << " Yellow Target Found";
         	// Just lost the light so issue a lost event
     		publish(EventType::TARGET_LOST, core::EventPtr(new core::Event()));
 		m_yellowFound = false;
@@ -305,6 +521,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 	if  (foundAspectRatio< m_maxAspectRatio && foundAspectRatio > m_minAspectRatio)
 	{ 
 	 	 //valid panel
+	        logger.infoStream() << " BLUE Target Found";
 		m_blueFound = TRUE;
 		m_found = true;
 		m_color = Color::BLUE;
@@ -315,6 +532,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 	}
 	else if (m_blueFound == true)
 	{
+	        logger.infoStream() << "Blue Target Found";
         	// Just lost the light so issue a lost event
     		publish(EventType::TARGET_LOST, core::EventPtr(new core::Event()));
 		m_blueFound = false;
@@ -326,16 +544,19 @@ void TargetDetector::processColorImage(Image* input, Image* output)
     int tempy=0;
     int centerX =0;
     int centerY=0;
+   double totalangle= 0;
     int mainpanelrange = 0;
     //find center of the entire panel
     if (m_greenFound == TRUE || m_redFound == TRUE || m_blueFound ==TRUE || m_yellowFound == TRUE)
 	{
+	        logger.infoStream() << " Main Target Found";
 	  m_found = 1;
 	  mainpanelrange = 0;
 	  //have found atleast one panel and therefore I can estimate  the center of the panel
 	  
 		if (m_greenFound == TRUE)
-		{
+		{	
+	        logger.infoStream() << " Green Target Found";
 			//green should be the upper right panel, so the center of the entire panel is the lower left corner
 			numberofpanels = 1+numberofpanels;
 			tempx = 100000;
@@ -352,9 +573,12 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 			centerX = centerX+tempx;
 			centerY = centerY+tempy;
 			circle(img_whitebalance, Point(tempx, tempy),15,Scalar( 0, 255, 0),-1,8 );
+			totalangle = totalangle+squareGreen.outline.angle;
 		}
 		if (m_redFound == TRUE)
 		{
+
+		        logger.infoStream() << " Red Target Found";
 			//red is upper left panel, so I want to lower right vertex for the center of the entire panel
 			numberofpanels = 1+numberofpanels;
 			tempx = 0;
@@ -372,9 +596,12 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 			centerX = centerX+tempx;
 			centerY = centerY+tempy;
 			circle(img_whitebalance, Point(tempx, tempy),15,Scalar( 0, 0, 255),-1,8 );
+			totalangle = totalangle+squareRed.outline.angle;
 		}
 		if (m_yellowFound == TRUE)
 		{
+
+	      		  logger.infoStream() << " Yellow Target Found";
 			//yellow is lower right, so I want the upper left
 			numberofpanels = 1+numberofpanels;
 			tempx = 100000;
@@ -392,9 +619,12 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 			centerX = centerX+tempx;
 			centerY = centerY+tempy;
 			circle(img_whitebalance, Point(tempx, tempy),15,Scalar( 0, 255, 255),-1,8 );
+			totalangle = totalangle+squareYellow.outline.angle;
 		}
 		if (m_blueFound == TRUE)
 		{
+
+	               logger.infoStream() << " Blue Target Found";
 			//blue is the lower left, so I want upper right corner
 			numberofpanels = 1+numberofpanels;
 			tempx = 0;
@@ -412,22 +642,38 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 			centerX = centerX+tempx;
 			centerY = centerY+tempy;
 			circle(img_whitebalance, Point(tempx, tempy),15,Scalar( 255, 0, 0),-1,8 );
+			totalangle = totalangle+squareBlue.outline.angle;
 		}
 		//printf("\n number of panels found = %d",numberofpanels);
+
+
+	        logger.infoStream() << "Total Panels Found : " <<numberofpanels;
 		centerX = centerX/double(numberofpanels);
 		centerY = centerY/double(numberofpanels);
 		circle(img_whitebalance, Point(centerX, centerY),5,Scalar( 255, 255, 0),-1,8 );
+
+	        logger.infoStream() << " center ("<<centerX<< " , " <<centerY;
 		Detector::imageToAICoordinates(input, 
 		                               centerX,
 		                               centerY,
 		                               m_targetCenterX,
 		                               m_targetCenterY);
+
+	        logger.infoStream() << " Transformed to ("<<m_targetCenterX<<" , "<<m_targetCenterY;
+
 		m_color = Color::UNKNOWN;
 		mainpanelrange = ((mainpanelrange)/(numberofpanels))*2;
 		m_range = mainpanelrange;
-
-	
-
+		m_smallflag = false;
+		m_targetSmallCenterX= 0;
+                m_targetSmallCenterY=0;
+		m_rangesmall =0;
+		m_largeflag = false;
+		m_targetLargeCenterX= 0;
+                m_targetLargeCenterY=0;
+		m_rangelarge =0;
+		m_angle = (totalangle/(double)numberofpanels);
+		
 
 		publishFoundEvent();
 	} //end have found some of the panel
@@ -440,7 +686,7 @@ void TargetDetector::processColorImage(Image* input, Image* output)
   	//imshow( "Red", erosion_dst_red );
 	//imshow( "Yellow", erosion_dst_yellow );
 	//imshow( "Green", erosion_dst_green );
-	//imshow( "blue", erosion_dst_blue );
+	//imshow( "blue", erosion_dst_blue )
 
         output->copyFrom(input);
 
@@ -462,12 +708,13 @@ void TargetDetector::processColorImage(Image* input, Image* output)
 };//end processColorImage
 
 
-TargetDetector::targetPanel TargetDetector::getSquareBlob(Mat erosion_dst, Mat img_whitebalance)
+TargetDetector::targetPanel TargetDetector::getSquareBlob(Mat erosion_dst, Mat img_whitebalance, Color::ColorType color )
 {
 	//perform blob detection for a square
 	//for now only do blob detection based on area
 
 
+	  logger.infoStream() << " Finding Contours, Entered getSquareBlob";
 	
 	  vector<vector<Point> > contours;
 	  vector<Vec4i> hierarchy;
@@ -477,11 +724,23 @@ TargetDetector::targetPanel TargetDetector::getSquareBlob(Mat erosion_dst, Mat i
 
 	  /// Draw contours
 	  //Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
-	  //for( unsigned int i = 0; i< contours.size(); i++ )
-	  //   {
-	      // Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-	  //    drawContours(img_whitebalance, contours, i, Scalar(50*i,0,0), 2, 8, hierarchy, 0, Point() );
-	   // }
+	 
+	  for( unsigned int i = 0; i< contours.size(); i++ )
+	     {
+		if ((int)contours[i].size() > m_minContourSize)
+		{
+			if (color == Color::RED)
+		     	 drawContours(img_whitebalance, contours, i, Scalar(0,0,255), 2, 8, hierarchy, 0, Point() );
+			else if (color == Color::GREEN)
+		     	 drawContours(img_whitebalance, contours, i, Scalar(0,255,0), 2, 8, hierarchy, 0, Point() );
+			else if (color == Color::YELLOW)
+		     	 drawContours(img_whitebalance, contours, i, Scalar(0,255,255), 2, 8, hierarchy, 0, Point() );
+			else if (color == Color::BLUE)
+		     	 drawContours(img_whitebalance, contours, i, Scalar(255,0,0), 2, 8, hierarchy, 0, Point() );
+			else 
+		     	 drawContours(img_whitebalance, contours, i, Scalar(255,255,0), 2, 8, hierarchy, 0, Point() );
+		}
+	     }
 
 
 	//find contour with the largest area- by area I mean number of pixels
@@ -503,6 +762,7 @@ TargetDetector::targetPanel TargetDetector::getSquareBlob(Mat erosion_dst, Mat i
 		}
 	};
 
+	logger.infoStream() << "Contours FOund with maxSize = "<<maxContour <<" with area : "<<maxArea;
 	Point2f vertices[4];
 	maxtemp.points(vertices);
 	//given the vertices find the min and max X and min and maxY
@@ -539,7 +799,6 @@ TargetDetector::targetPanel TargetDetector::getSquareBlob(Mat erosion_dst, Mat i
 			//printf("\n center = (%f,%f), Xrange = %f,%f, Yrange = %f,%f",minEllipse.center.x,minEllipse.center.y,minX,maxX,minY,maxY);
 			if (minEllipse.center.x > minX && minEllipse.center.x < maxX && minEllipse.center.y < maxY && minEllipse.center.y >minY)
 			{
-			//printf(" MADE IT!");
 				//in the middle, therefore save
 				//should also be roughly circular - width should be about equal to height
 				if (minEllipse.size.height*minEllipse.size.width > targetLargeArea && abs(minEllipse.size.height-minEllipse.size.width) < 20)
@@ -555,22 +814,56 @@ TargetDetector::targetPanel TargetDetector::getSquareBlob(Mat erosion_dst, Mat i
 					targetSmall = minEllipse;
 					targetSmallArea = minEllipse.size.height*minEllipse.size.width;
 				}
-			//ellipse(img_whitebalance, minEllipse, Scalar(0,0,255), 2, 8 );
+
 			}//end if in the center
 		} //end if j!=maxcounter
 	};
 
-//imshow("internal",img_whitebalance);
+
+	        logger.infoStream() << " TargetLareArea = " <<targetLargeArea <<" Small Area "<<targetSmallArea;
+	//imshow("internal",img_whitebalance);
+
+	//Display Purposes
+	
 /*
-//Display Purposes
-	Point2f vertices[4];
 	maxtemp.points(vertices);
 	for (int i = 0; i < 4; i++)
-	    line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(0,255,0));
+	{
 
-	imshow("final",img_whitebalance); 
-*/
-targetPanel answer;
+		if (color == Color::RED)
+		{
+		 line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(0,0,255),2);
+		}
+		else if (color == Color::GREEN)
+		{
+			 line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(0,255,0),2);
+		}
+		else if (color == Color::BLUE)
+		{
+		 line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(255,0,0),2);
+		}
+		else if (color == Color::YELLOW)
+		{
+		 line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(0,255,255),2);
+		}
+		else 
+		{
+		 line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(255,255,0),2);
+		}
+	}
+*/ 
+
+	targetPanel answer;
+	if (targetLargeArea > 0)
+		answer.foundLarge = true;
+	else
+		answer.foundLarge = false;
+
+	if (targetSmallArea > 0)
+		answer.foundSmall = true;
+	else
+		answer.foundSmall = false;
+
 	answer.outline = maxtemp;
 	answer.targetSmall = targetSmall;
 	answer.targetLarge = targetLarge;
@@ -731,6 +1024,14 @@ processColorImage(input,output);
 
 void TargetDetector::publishFoundEvent()
 {
+logger.infoStream() << "Publish Event: Center "<<m_targetCenterX <<", "<<m_targetCenterY<< 
+				" large center: "<<m_targetLargeCenterX <<", "<<m_targetLargeCenterY<<
+				" small center: "<<m_targetSmallCenterX <<", "<<m_targetSmallCenterY<<
+				" Squareness: "<<m_squareNess <<", range: "<<m_range<<
+				" Flags: Large: "<<m_largeflag <<", small: "<<m_smallflag<<
+				" ranges: "<<m_rangelarge<<", small: "<<m_rangesmall<<
+				" angle: "<<m_angle <<", Color"<<m_color<< " ";
+
         TargetEventPtr event(new TargetEvent(
                                  m_targetCenterX,
                                  m_targetCenterY,
@@ -747,7 +1048,7 @@ void TargetDetector::publishFoundEvent()
 				m_angle,
 				  m_color));
 				
-        
+        printf("\n Publishing Target");
         publish(EventType::TARGET_FOUND, event);
 }
 
@@ -812,15 +1113,23 @@ bool TargetDetector::processGreenBlobs(const BlobDetector::BlobList& blobs,
 
 void TargetDetector::setPublishData(targetPanel square, Image* input)
 {
+
+logger.infoStream() << " Setting Data to be Publish";
+
 	Point2f vertices[4];
 	int minTargetSize = 25;
 	square.outline.points(vertices);
 	// Determine the corindates of the target
+logger.infoStream() << " Center of main panel ("<<(int)square.outline.center.x<<" , "<<(int)square.outline.center.y <<") ";
+
 	Detector::imageToAICoordinates(input, 
 	              (int)square.outline.center.x,
 	              (int)square.outline.center.y,
 	              m_targetCenterX,
                       m_targetCenterY);
+
+logger.infoStream() << "Center converted to ("<<m_targetCenterX <<" , "<<m_targetCenterY <<") ";
+
 	// Determine range
 	//m_range = 1.0 - (((double)square.outline.size.width) /
 	//                 ((double)square.outline.size.height));
@@ -834,14 +1143,12 @@ void TargetDetector::setPublishData(targetPanel square, Image* input)
 	    m_squareNess = 1.0;
 	else
 	    m_squareNess = 1.0/aspectRatio;
-
-
 	m_angle = square.outline.angle;
 	//plot pretty results
-	for (int i = 0; i < 4; i++)
-  		line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(0,255,0));
+	//for (int i = 0; i < 4; i++)
+  	//	line(img_whitebalance, vertices[i], vertices[(i+1)%4], Scalar(0,255,0));
 	
- 	if (square.targetLarge.size.width > minTargetSize && square.targetLarge.size.height > minTargetSize)
+ 	if (square.targetLarge.size.width > minTargetSize && square.targetLarge.size.height > minTargetSize && square.foundLarge == true)
 	{
 		m_largeflag = true;
 		//valid
@@ -853,13 +1160,36 @@ void TargetDetector::setPublishData(targetPanel square, Image* input)
 		m_rangelarge = square.targetLarge.size.width; 
 
 		//plot pretty results
-		ellipse(img_whitebalance, square.targetLarge, Scalar(0,250,0), 4, 8 );
+		if (m_color == Color::RED)
+		{
+			ellipse(img_whitebalance, square.targetLarge, Scalar(0,0,255), 4, 8 );
+		}
+		else if (m_color == Color::GREEN)
+		{
+			ellipse(img_whitebalance, square.targetLarge, Scalar(0,255,0), 4, 8 );
+		}
+		else if (m_color == Color::BLUE)
+		{
+			ellipse(img_whitebalance, square.targetLarge, Scalar(255,0,0), 4, 8 );
+		}
+		else if (m_color == Color::YELLOW)
+		{
+			ellipse(img_whitebalance, square.targetLarge, Scalar(0,255,255), 4, 8 );
+		}
+		else 
+		{
+			ellipse(img_whitebalance, square.targetLarge, Scalar(255,255,0), 4, 8 );
+		}
+
 	}
 	else
 	{
 		m_largeflag = false;
+		m_targetLargeCenterX= 0;
+                m_targetLargeCenterY=0;
+		m_rangelarge =0;
 	}
-  	if (square.targetSmall.size.width > minTargetSize && square.targetSmall.size.height > minTargetSize)
+  	if (square.targetSmall.size.width > minTargetSize && square.targetSmall.size.height > minTargetSize &&  square.foundSmall == true)
 	{
 		m_smallflag = true;
 		//valid
@@ -870,11 +1200,33 @@ void TargetDetector::setPublishData(targetPanel square, Image* input)
                          m_targetSmallCenterY);
 		
 		m_rangesmall = square.targetSmall.size.width; 
-		ellipse(img_whitebalance, square.targetSmall, Scalar(0,250,0), 2, 8 );
+		if (m_color == Color::RED)
+		{
+			ellipse(img_whitebalance, square.targetSmall, Scalar(0,0,150), 4, 8 );
+		}
+		else if (m_color == Color::GREEN)
+		{
+			ellipse(img_whitebalance, square.targetSmall, Scalar(0,150,0), 4, 8 );
+		}
+		else if (m_color == Color::BLUE)
+		{
+			ellipse(img_whitebalance, square.targetSmall, Scalar(150,0,0), 4, 8 );
+		}
+		else if (m_color == Color::YELLOW)
+		{
+			ellipse(img_whitebalance, square.targetSmall, Scalar(0,150,150), 4, 8 );
+		}
+		else 
+		{
+			ellipse(img_whitebalance, square.targetSmall, Scalar(150,150,0), 4, 8 );
+		}
 	}
 	else
 	{
 		m_smallflag = false;
+		m_targetSmallCenterX= 0;
+                m_targetSmallCenterY=0;
+		m_rangesmall =0;
 	}
 }   
     
