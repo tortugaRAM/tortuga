@@ -33,6 +33,7 @@ RedLightDetector:
     redPercentage: 38.0
     redIntensity: 150
     maxAspectRatio: 2.0
+
 OrangePipeDetector:
     rOverGMin: 1.05 #0.75 (NEW# 0.88)
     rOverGMax: 2.41 #1.5 (NEW# 2.16)
@@ -42,6 +43,69 @@ OrangePipeDetector:
     minPixels: 3000
     minPixelsFound: 1500
     erodeIterations: 1
+
+# BinDetector:
+#     #symbolDetector: BasicWeaponDetector
+#     logSymbolImages: false
+#     centeredLimit: 0.2
+#     #sameBinThreshold: 0.2
+#     #maxAspectRatio: 3
+#     blackMaskMinimumPercent: 10
+#     blackMaskMaxTotalIntensity: 350
+#     whiteMaskMinimumPercent: 15
+#     whiteMaskMinimumIntensity: 137
+#     redMinRValue: 70
+#     filtblackCMax: 19
+#     filtblackCMin: 0
+#     filtblackHMax: 255
+#     filtblackHMin: 0
+#     filtblackLMax: 81
+#     filtblackLMin: 0
+#     filtredCMax: 255
+#     filtredCMin: 20
+#     filtredHMax: 32
+#     filtredHMin: 236
+#     filtredLMax: 255
+#     filtredLMin: 15
+#     filtwhiteCMax: 255
+#     filtwhiteCMin: 0
+#     filtwhiteHMax: 103
+#     filtwhiteHMin: 158
+#     filtwhiteLMax: 255
+#     filtwhiteLMin: 147
+#     weaponMinAspectRatioAxe: 2.47
+#     weaponMaxAspectRatioAxe: 3
+#     weaponMinSideFillRatioAxe: 2.25
+#     weaponMaxSideFillRatioAxe: 5.52
+#     weaponMinCornerFillAvgAxe: 0.06
+#     weaponMaxCornerFillAvgAxe: 0.33
+#     weaponMinMiddleFillAvgAxe: 0.11
+#     weaponMaxMiddleFillAvgAxe: 0.17
+#     weaponMinAspectRatioMachete: 1.95
+#     weaponMaxAspectRatioMachete: 3.11
+#     weaponMinSideFillRatioMachete: 1.18
+#     weaponMaxSideFillRatioMachete: 2.11
+#     weaponMinCornerFillAvgMachete: 0.08
+#     weaponMaxCornerFillAvgMachete: 0.27
+#     weaponMinMiddleFillAvgMachete: 0.22
+#     weaponMaxMiddleFillAvgMachete: 0.34
+#     weaponMinAspectRatioClippers: 2.19
+#     weaponMaxAspectRatioClippers: 2.83
+#     weaponMinSideFillRatioClippers: 1.01
+#     weaponMaxSideFillRatioClippers: 1.23
+#     weaponMinCornerFillAvgClippers: 0.02
+#     weaponMaxCornerFillAvgClippers: 0.37
+#     weaponMinMiddleFillAvgClippers: 0.27
+#     weaponMaxMiddleFillAvgClippers: 0.37
+#     weaponMinAspectRatioHammer: 1.77
+#     weaponMaxAspectRatioHammer: 2.8
+#     weaponMinSideFillRatioHammer: 1.36
+#     weaponMaxSideFillRatioHammer: 5.17
+#     weaponMinCornerFillAvgHammer: 0.0
+#     weaponMaxCornerFillAvgHammer: 0.14
+#     weaponMinMiddleFillAvgHammer: 0.10
+#     weaponMaxMiddleFillAvgHammer: 0.17
+
 DuctDetector:
     minRedOverGreen: 0.5
     maxRedOverGreen: 1.5
@@ -61,8 +125,6 @@ DuctDetector:
     uppedGrowThreshY: 0.05
 DownwardDuctDetector:
     minRedOverGreen: 0.5mitted 4 hours ago by amity_
-
-
     maxRedOverGreen: 1.5
     minRedOverBlue: 1.0
     minGreenOverBlueOnRedFailureForInsideDuct: 1.1
@@ -165,6 +227,53 @@ BuoyDetector:
     debug: 2
     dilateIterations: 0
     erodeIterations: 3
+    filtBlackCMax: 255
+    filtBlackCMin: 0
+    filtBlackHMax: 255
+    filtBlackHMin: 0
+    filtBlackLMax: 255
+    filtBlackLMin: 0
+    filtGreenCMax: 255
+    filtGreenCMin: 0
+    filtGreenHMax: 90
+    filtGreenHMin: 255
+    filtGreenLMax: 255
+    filtGreenLMin: 0
+    filtRedCMax: 255
+    filtRedCMin: 97
+    filtRedHMax: 160
+    filtRedHMin: 9
+    filtRedLMax: 148
+    filtRedLMin: 53
+    filtYellowCMax: 255
+    filtYellowCMin: 0
+    filtYellowHMax: 35
+    filtYellowHMin: 15
+    filtYellowLMax: 255
+    filtYellowLMin: 0
+    leftIgnorePercentage: 0
+    maxAspectRatio: 1.1
+    maxDistance: 15
+    maxTotalBlackCheckSize: 0.1
+    minAspectRatio: 0.25
+    minBlackPercentage: 0.25
+    minHeight: 50
+    minPixelPercentage: 0.1
+    minPixels: 15
+    minWidth: 50
+    rightIgnorePercentage: 0
+    topIgnorePercentage: 0
+
+BuoyDetectorD:
+    GreenColorFilterLookupTable: 0
+    RedColorFilterLookupTable: 0
+    YellowColorFilterLookupTable: 0
+    almostHitPercentage: 0.2
+    bottomIgnorePercentage: 0
+    checkBlack: 0
+    debug: 2
+    dilateIterations: 0
+    erodeIterations: 0
     filtBlackCMax: 255
     filtBlackCMin: 0
     filtBlackHMax: 255
