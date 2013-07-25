@@ -58,6 +58,32 @@ class RAM_EXPORT BinDetector : public Detector
 		double angle;
 		double width;
 		double height;
+		
+	};
+	struct binData
+	{
+
+		bool Box_found;
+		int Box_x;
+		int Box_y;
+		double Box_angle;	
+		int Box_height;
+		int Box_width;
+		bool Box_identified; //is it identified
+		int Box_numberofframes; //number of frames consistently id'd
+		int Box_type; //identification number
+		
+	};
+	struct finalBins
+	{
+		bool MainBox_found;
+		int MainBox_x;
+		int MainBox_y;
+		double MainBox_angle;
+		int MainBox_height;
+		int MainBox_width;
+		int MainBox_type; //identification number
+		binData Box[4];
 	};
 	
 
@@ -377,7 +403,6 @@ class RAM_EXPORT BinDetector : public Detector
     /** Temporary LCH Image */
     OpenCVImage* m_frame;
 
-	int m_framecount;
 	/**Kate changes*/
 	void DetectorContours(Image* input);
 	void getSquareBlob(cv::Mat erosion_dst, bincontours* bins, int  numberoftrackedcontours);
@@ -387,6 +412,9 @@ class RAM_EXPORT BinDetector : public Detector
 	void saveTrainingImages(cv::Mat* finalresize);
 	void publishFoundEventSURF(bincontours bin);
 	void publishLostEvent(Symbol::SymbolType color);
+	void checkPreviousFrames();
+	void publishFoundEventSURFAll();
+
 	cv::Mat img_whitebalance;
 	//cv::Mat img_saturation;
 	bincontours m_bin;
@@ -417,6 +445,28 @@ class RAM_EXPORT BinDetector : public Detector
 	bool m_Bin10FoundBefore;
 	bool m_Bin16FoundBefore;
 
+	//trying to keep teh bins at the same angle as the main
+
+	finalBins m_allbins; //data structure of all relevant data plus a little bit more
+	int m_bin16frames;
+int m_bin37frames;
+int m_bin10frames;
+int m_bin98frames;
+
+
+
+	double m_minanglepercent; //min angle the internal bins can be, not really used
+	double m_maxanglepercent; //not really used
+	
+	finalBins m_previousbins;
+	int m_minAssumeFrame;
+	int m_maxdistanceX;
+	int m_maxdistanceY;
+	int m_trainingsuccess;
+ 	cv::Mat m_descriptors_object[16*50];
+int m_framecount;
+
+ 
 };
 
 } // namespace vision

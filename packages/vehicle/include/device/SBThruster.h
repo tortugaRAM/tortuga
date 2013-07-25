@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2007 Robotics at Maryland
- * Copyright (C) 2007 Joseph Lisee <jlisee@umd.edu>
- * All rights reserved.
- *
- * Author: Joseph Lisee <jlisee@umd.edu>
- * File:  packages/vision/include/device/SBThruster.h
- */
+* Copyright (C) 2007 Robotics at Maryland
+* Copyright (C) 2007 Joseph Lisee <jlisee@umd.edu>
+* All rights reserved.
+*
+* Author: Joseph Lisee <jlisee@umd.edu>
+* File: packages/vision/include/device/SBThruster.h
+*/
 
 #ifndef RAM_VEHICLE_DEVICE_SBTHRUSTER_06_25_2007
 #define RAM_VEHICLE_DEVICE_SBTHRUSTER_06_25_2007
@@ -56,6 +56,8 @@ public:
 
     virtual math::Vector3 getLocation();
 
+    virtual math::Vector3 getDirection();
+
     virtual double getCurrent();
     
     /** Gets the current motor count */
@@ -80,21 +82,21 @@ public:
     };
     
     /** This is delegated to the ThrusterCommunicator
-     *
-     *  @note  It affect ALL thrusters.
-     */
+*
+* @note It affect ALL thrusters.
+*/
     virtual void background(int interval);
 
     /** This is delegated to the ThrusterCommunicator
-     *
-     *  @note  It affect ALL thrusters, so it shuts off control for all of them.
-     */
+*
+* @note It affect ALL thrusters, so it shuts off control for all of them.
+*/
     virtual void unbackground(bool join = false);
 
     /** This is delegated to the ThrusterCommunicator
-     *
-     *  @note  It will return the same value for all thrusters.
-     */
+*
+* @note It will return the same value for all thrusters.
+*/
     virtual bool backgrounded();
     
 private:
@@ -115,14 +117,14 @@ private:
     /** Current motor count */
     int m_motorCount;
 
-    /** Directional bias for motor */
-    int m_direction;
-
     /** The offset from axis perpendicular to axis of induced rotation */
     double m_offset;
 
     /** The location of the thruster with respect to the center of mass */
     math::Vector3 m_location;
+
+    /** Direction of the force vector for positive thrust */
+    math::Vector3 m_direction;
 
     /** Current amperage draw of the thruster */
     double m_current;

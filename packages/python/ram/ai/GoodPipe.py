@@ -21,7 +21,9 @@ class Centering(vs.DHyperApproach):
         return { 'kx' : .15 ,  'ky' : .4 , 'kz' : 9, 'x_d' : 0, 'r_d' : 50 , 'y_d' : 0, 'x_bound': .05, 'r_bound': 20, 'y_bound':.025 ,'minvx': .1, 'minvy': .1 ,'minvz' : .1}   
 
     def PIPE_FOUND(self,event):
-        run(event):
+        currentOrientation = self.stateEstimator.getEstimatedOrientation()
+        
+        run(event)
 
     def decideZ(self,event):
         return 0
@@ -35,10 +37,12 @@ class Align(state.State):
     def getattr():
         return {'yaw_bound' : .05}
     def PIPE_FOUND(self,event):
+        currentOrientation = self.stateEstimator.getEstimatedOrientation()
+
+
         if((abs(event.angle)-90) < self._yaw_bound):
             self.publish(DONE,core.Event())
         else:
-            currentOrientation = self.stateEstimator.getEstimatedOrientation()
             yawTrajectory = motion.trajectories.StepTrajectory(
             initialValue = currentOrientation,
             finalValue = yawVehicleHelper(currentOrientation, 

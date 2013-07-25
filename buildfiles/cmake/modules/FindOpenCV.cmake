@@ -48,7 +48,7 @@
 #----------------------------------------------------------
 
 
-FIND_PATH(OPENCV_DIR OpenCVConfig.cmake /home/tortuga/opencv-2.4.5/build NO_DEFAULT_PATH)
+FIND_PATH(OPENCV_DIR OpenCVConfig.cmake /home/stephenc/Documents/OpenCV/build NO_DEFAULT_PATH)
 #message(" KateOPENCV_DIR : " ${OPENCV_DIR})
 ##====================================================
 ## Find OpenCV libraries

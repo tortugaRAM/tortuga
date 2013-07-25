@@ -239,11 +239,11 @@ void BuoyDetector::init(core::ConfigNode config)
         
     // Working images
     frame = new OpenCVImage(640, 480, Image::PF_BGR_8);
-    
-    redFrame = new OpenCVImage(640, 480, Image::PF_BGR_8);
-    greenFrame = new OpenCVImage(640, 480, Image::PF_BGR_8);
-    yellowFrame = new OpenCVImage(640, 480, Image::PF_BGR_8);
-    blackFrame = new OpenCVImage(640, 480, Image::PF_BGR_8);
+    //
+    //redFrame = new OpenCVImage(640, 480, Image::PF_BGR_8);
+    //greenFrame = new OpenCVImage(640, 480, Image::PF_BGR_8);
+    //yellowFrame = new OpenCVImage(640, 480, Image::PF_BGR_8);
+    //blackFrame = new OpenCVImage(640, 480, Image::PF_BGR_8);
     
     //buoy detection algorithm constants
     //starts from the build folder?
@@ -286,10 +286,10 @@ BuoyDetector::~BuoyDetector()
         delete m_greenTableColorFilter;
 
     delete frame;
-    delete redFrame;
-    delete greenFrame;
-    delete yellowFrame;
-    delete blackFrame;
+   // delete redFrame;
+   // delete greenFrame;
+   // delete yellowFrame;
+   // delete blackFrame;
 
 
 }
@@ -568,9 +568,9 @@ m_framenumber = m_framenumber+1;
 	}	
   	erode(img_red, erode_dst_red, element);
 
-  	//imshow("green",erode_dst_green);
-	//imshow("yellow",erode_dst_yellow);
-	//imshow("red",erode_dst_red);
+  	imshow("green",erode_dst_green);
+	imshow("yellow",erode_dst_yellow);
+	imshow("red",erode_dst_red);
 
 	//get Blobs
 	m_redbuoy= getSquareBlob(erode_dst_red);

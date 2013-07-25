@@ -145,17 +145,13 @@ class AlignStrafe(approach.XZCenter):
 
     @staticmethod
     def getattr():
-        
+        pass
 
 class CenterGate(approach.XZCenter):
-
+    pass
 
 class WaitTime(utility.MotionState):
-
-    @staticmethod
-    def transitions():
-        return { motion.basic.MotionState :  }
-
+    pass
 
 class End(state.State):
     def enter(self):
