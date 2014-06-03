@@ -156,6 +156,7 @@ void VisionSystem::init(core::ConfigNode config, core::EventHubPtr eventHub)
         new GateDetector(getConfig(config, "GateDetector"), eventHub));
     m_cupidDetector = DetectorPtr(
         new TargetDetector(getConfig(config, "TargetDetector"), eventHub));
+	//lovers lane is now teh hedge detector - which is a gate detector but with a different config
     m_loversLaneDetector = DetectorPtr(
         new GateDetector(getConfig(config, "HedgeDetector"), eventHub));
 
@@ -165,6 +166,9 @@ void VisionSystem::init(core::ConfigNode config, core::EventHubPtr eventHub)
     //cast down to detector ptr like the rest of them
     m_monoPipeDetector = tmp;
 
+	boost::shared_ptr<OrangePipeDetector> tmp(new OrangePipeDetector(getConfig(config,"OrangePipeDetector"),eventHub));
+	tmp->m_onlyReportOnePipe=true;
+	m_monoPipeDetector = tmp;
     // Start camera in the background (at the fastest rate possible)
     m_forwardCamera->background(-1);
     m_downwardCamera->background(-1);
@@ -216,6 +220,7 @@ void VisionSystem::addDownwardDetector(DetectorPtr detector)
     assert(detector && "Can't use a NULL detector");
     m_downward->addDetector(detector);
 }
+
 
 core::ConfigNode VisionSystem::getConfig(core::ConfigNode config,
                                          std::string name)
@@ -286,6 +291,20 @@ void VisionSystem::pipeLineDetectorOff()
     publish(EventType::PIPELINE_DETECTOR_OFF,
             core::EventPtr(new core::Event()));
 }
+void VisionSystem::monoPipeLineDetectorOn()
+{
+	addDownwardDetector(m_pipelineDetector);
+	publish(EventType::PIPELINE_DETECTOR_ON,
+		 core::EventPtr(new core::Event()));
+
+}
+void VisionSystem::monoPipeLineDetectorOff()
+{
+	m_downward->removeDetector(m_pipelineDetector);
+	publish(EventType::PIPELINE_DETECTOR_OFF,
+		 core::EventPtr(new core::Event()));
+
+}
 
 void VisionSystem::downwardSafeDetectorOn()
 {
@@ -346,14 +365,14 @@ void VisionSystem::cupidDetectorOff()
 void VisionSystem::loversLaneDetectorOn()
 {
     addForwardDetector(m_loversLaneDetector);
-    publish(EventType::LOVERSLANE_DETECTOR_ON,
+    publish(EventType::GATE_DETECTOR_ON,
             core::EventPtr(new core::Event()));
 }
 
 void VisionSystem::loversLaneDetectorOff()
 {
     m_forward->removeDetector(m_loversLaneDetector);
-    publish(EventType::LOVERSLANE_DETECTOR_OFF,
+    publish(EventType::GATE_DETECTOR_OFF,
             core::EventPtr(new core::Event()));
 }
 

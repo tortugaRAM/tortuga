@@ -148,7 +148,7 @@ void OrangePipeDetector::init(core::ConfigNode config)
                          "Number of dilate iterations to perform",
                          0, &m_dilateIteration);
 
-
+m_onlyReportOnePipe=false;
 logger.info("Got Initial Values");
 
 }
@@ -284,8 +284,39 @@ pipe
 	//double givenAspectRatio = 1.0;
 	m_framenumber = m_framenumber+1;
 
-	
+	/*
 	img_whitebalance=input->asIplImage();
+	
+	Mat img = input->asIplImage();
+	img_whitebalance = WhiteBalance(img);
+	Mat temphsv;
+	cvtColor(img_whitebalance,temphsv,CV_RGB2HSV);
+	vector<Mat> hsv_planes;
+	split(temphsv,hsv_planes);
+	Mat tempWhite;
+	equalizeHist(hsv_planes[1], hsv_planes[1]);
+	equalizeHist(hsv_planes[2], hsv_planes[2]);
+	equalizeHist(hsv_planes[0], hsv_planes[0]);
+	merge(hsv_planes,temphsv);
+	cvtColor(temphsv,img_whitebalance,CV_HSV2RGB);
+*/
+
+Mat img = input->asIplImage();
+
+	img_whitebalance = WhiteBalance(img);
+	Mat temphsv;
+	cvtColor(img_whitebalance,temphsv,CV_BGR2HSV);
+	vector<Mat> hsv_planes;
+	split(temphsv,hsv_planes);
+	Mat tempWhite;
+	equalizeHist(hsv_planes[1], hsv_planes[1]);
+	equalizeHist(hsv_planes[2], hsv_planes[2]);
+	merge(hsv_planes,temphsv);
+	cvtColor(temphsv,img_whitebalance,CV_HSV2BGR);
+
+
+
+
 	//Mat img = input->asIplImage();
 	//img_whitebalance = WhiteBalance(img);
 	Mat img_hsv(img_whitebalance.size(),img_whitebalance.type());
@@ -310,7 +341,7 @@ logger.infoStream() << "Initial Values Red Hue: " << red_minH<<" , "<<red_maxH <
 	//use blob detection to find gate
 	//find left and right red poles - vertical poles
 	cvtColor(img_blur,img_hsv,CV_BGR2HSV);
-	vector<Mat> hsv_planes;
+	//vector<Mat> hsv_planes;
 	split(img_hsv,hsv_planes);
 
 	//first take any value higher than max and converts it to 0
@@ -340,7 +371,9 @@ logger.infoStream() << "Initial Values Red Hue: " << red_minH<<" , "<<red_maxH <
 
 	//red
 	logger.infoStream() << " Filtering Color";
-	Mat img_red =blob.OtherColorFilter(hsv_planes,red_minH,red_maxH);	
+	Mat img_red =blob.OtherColorFilter(hsv_planes,red_minH,red_maxH);
+		
+	imshow("Hue",img_red);
 	if (red_minS != 0 || red_maxS != 255)	
 	{
 		logger.infoStream() << " Filtering Saturaiton Channel";
@@ -349,18 +382,24 @@ logger.infoStream() << "Initial Values Red Hue: " << red_minH<<" , "<<red_maxH <
 		img_red = temp_red;
 		//imshow("Sat ReD",img_saturation);
 	}
+	imshow("Saturation",img_saturation);
+Mat img_Luminance_red;
+img_Luminance_red = blob.LuminanceFilter(hsv_planes,red_minL,red_maxL);
+
 	if (red_minL != 0 || red_maxL != 255)	
 	{
 		logger.infoStream() << " Filtering Luminance Channel";
-		Mat img_Luminance_red = blob.LuminanceFilter(hsv_planes,red_minL,red_maxL);
+		
 		bitwise_and(img_Luminance_red,img_red,temp_red,noArray());
 		img_red = temp_red;
 		//imshow("Luminance Red",img_Luminance);
 	}	
-
+	imshow("Luminance",img_Luminance_red);
   	erode(img_red, erode_dst_red, element);
 	dilate(erode_dst_red, dilate_dst_red, dilate_element );
 	//imshow("red",erode_dst_red);
+
+
 
 	//get Blobs 
         logger.infoStream() << "Frame Number "<<m_framenumber<<" Have filtered image with rows= " << erode_dst_red.rows<<" col= "<< erode_dst_red.cols <<" \n ";
@@ -488,19 +527,23 @@ logger.infoStream() << "Initial Values Red Hue: " << red_minH<<" , "<<red_maxH <
 		m_foundpipe1= false;
 		publishLostEvent(m_previousfinalpipe.id);
 	}
-	if (finalpipe.found2 == true)
-	{	
 
-		logger.infoStream() << " Pipe2 found going to publish Data";
-		m_foundpipe2 = true;
-		publishFoundEvent(finalpipe,2,input);
-	}
-	else if (m_foundpipe2== true)
+	if (m_onlyReportOnePipe== false)
 	{
-		//lost event
-		logger.infoStream() << " Pipe1 Lost publishing lost even";
-		m_foundpipe2 = false;
-		publishLostEvent(m_previousfinalpipe.id2); //this is a hack that may work
+		if (finalpipe.found2 == true)
+		{	
+
+			logger.infoStream() << " Pipe2 found going to publish Data";
+			m_foundpipe2 = true;
+			publishFoundEvent(finalpipe,2,input);
+		}
+		else if (m_foundpipe2== true)
+		{
+			//lost event
+			logger.infoStream() << " Pipe1 Lost publishing lost even";
+			m_foundpipe2 = false;
+			publishLostEvent(m_previousfinalpipe.id2); //this is a hack that may work
+		}
 	}	
 
 }
@@ -569,7 +612,7 @@ logger.infoStream() << "Max Area" <<maxArea <<" at contour :"<< maxContour <<" S
 	if (maxArea  > m_minSize)
 	{
 		maxtemp.points(vertices);
-	
+		finalpipe.area = maxArea;
 		//allocate data
 		finalpipe.found = true;
 		finalpipe.id = 1;
@@ -665,6 +708,7 @@ logger.infoStream() << "Max Area" <<maxArea <<" at contour :"<< maxContour <<" S
 	
 		//allocate data
 		
+		finalpipe.area2 = maxArea2;
 		finalpipe.found2 = true;
 		finalpipe.id2 = 2;
 		finalpipe.centerx2 = (int)maxtemp2.center.x;
@@ -718,6 +762,7 @@ logger.infoStream() << "Max Area" <<maxArea <<" at contour :"<< maxContour <<" S
 		{
 			finalpipe.angle2 = 90;
 		}
+			
 
 		//line(img_whitebalance,Point(midpointx1,midpointy1),Point(midpointx2,midpointy2),Scalar(150,0,0),5);
 		drawContours(img_whitebalance, contours, maxContour2, Scalar(255,0,0), 2, 8, hierarchy, 0, Point() ); 

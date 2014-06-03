@@ -59,7 +59,6 @@ public:
     virtual void monoPipeLineDetectorOn();
     virtual void monoPipeLineDetectorOff();
 
-
     /** Creates a recorder based on the string with the given policy
      *
      *  @param recorderString

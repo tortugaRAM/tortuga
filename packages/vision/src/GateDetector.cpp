@@ -200,7 +200,20 @@ Mat GateDetector::processImageColor(Image*input)
 
 	//printf("\n saving img from input");
 	Mat img = input->asIplImage();
+
 	img_whitebalance = WhiteBalance(img);
+	Mat temphsv;
+	cvtColor(img_whitebalance,temphsv,CV_BGR2HSV);
+	vector<Mat> hsv_planes;
+	split(temphsv,hsv_planes);
+	Mat tempWhite;
+	equalizeHist(hsv_planes[1], hsv_planes[1]);
+	equalizeHist(hsv_planes[2], hsv_planes[2]);
+	merge(hsv_planes,temphsv);
+	cvtColor(temphsv,img_whitebalance,CV_HSV2BGR);
+
+	
+
 	//printf("\n processImageColor");
 	cv::Mat img_hsv(img_whitebalance.size(),CV_8UC3); //HSV image
 	cv::Mat img_red(img_whitebalance.size(),CV_8UC1); //red image
@@ -214,8 +227,9 @@ Mat GateDetector::processImageColor(Image*input)
 
 	//printf("\n entering whitebalance");
 	//cvtColor(img_whitebalance,img_hsv,CV_BGR2HSV);
-	vector<Mat> hsv_planes;
+	//vector<Mat> hsv_planes;
 	split(img_whitebalance,hsv_planes);
+
 
 	//first take any value higher than max and converts it to 0
 	//red is a special case because the hue value for red are 0-10 and 170-1980
@@ -295,7 +309,7 @@ void GateDetector::FindContours(Mat img_src)
 	//I want the ones that have 90 degree angles and 0 degrees angle
 
 	//is that enough? Also make sure the height is about 5x the width? maybe? 
-	//lets try it!
+	//lets try it
 
 	vector<vector<Point> > contours;
 	vector<Vec4i> hierarchy;
@@ -328,6 +342,7 @@ void GateDetector::FindContours(Mat img_src)
 	double angle = 0;
 	Point2f vertices[4];
 
+	int minX=0,minY=0,maxX=0,maxY=0;
 	int maxdistance=0, maxdistance2=0,distance=9;
 	int midpointx=0,midpointy=0;
 	int midpointx1=0,midpointy1=0,midpointx2=0,midpointy2=0;
@@ -339,6 +354,10 @@ void GateDetector::FindContours(Mat img_src)
 	{
 		if (contours[j].size() > minContourSize)	
 		{
+			minX = 9000;
+			minY=9000;
+			maxX=0;
+			maxY=0;
 			temp = minAreaRect(contours[j]); //finds the rectangle that will encompass all the points
 			area = temp.size.width*temp.size.height;
 			foundaspectdiff = abs(temp.size.height/temp.size.width);
@@ -348,6 +367,7 @@ void GateDetector::FindContours(Mat img_src)
 				//get angle
 				maxdistance =0;
 				maxdistance2 = 0;
+				foundaspectdiff = abs(temp.size.height/temp.size.width);
 				for (int i = 0; i < 4; i++)
 				{
 					midpointx=(int)((vertices[i].x+vertices[(i+1)%4].x)/2);
@@ -369,7 +389,17 @@ void GateDetector::FindContours(Mat img_src)
 						midpointx2 = midpointx;
 						midpointy2 = midpointy;
 					}
+					if (vertices[i].x < minX)
+						minX = vertices[i].x;
+					if (vertices[i].x>maxX)
+						maxX = vertices[i].x;
+					if (vertices[i].y < minY)
+						minY = vertices[i].y;
+					if (vertices[i].y > maxY)
+						maxY = vertices[i].y;
+				
 				}
+				foundaspectdiff = double(maxY-minY)/double(maxX-minX);
 				//lower point always first
 				rise = (midpointy2-midpointy1);
 				run = (midpointx2-midpointx1);
@@ -400,7 +430,7 @@ void GateDetector::FindContours(Mat img_src)
 				area = 0;		
 			}
 			//printf("\n area = %f, aspectratio = %f, angle = %f, rise = %f, run=%f",area, foundaspectdiff,angle,rise,run);
-			if (area > minArea && abs(angle-90)<m_maxanglediff&& (foundaspectdiff > m_maxAspectRatio || foundaspectdiff < m_minAspectRatio))
+			if (area > minArea && abs(angle-90)<m_maxanglediff&& (foundaspectdiff < m_minAspectRatio))
 			{
 				//Horizontal
 				if (area > Horizontal_large.area)
@@ -431,7 +461,7 @@ void GateDetector::FindContours(Mat img_src)
 				//}
 
 			}
-			if (area > minArea && abs(angle)<m_maxanglediff && (foundaspectdiff > m_maxAspectRatio || foundaspectdiff < m_minAspectRatio))
+			if (area > minArea && abs(angle)<m_maxanglediff && (foundaspectdiff > m_maxAspectRatio))// || foundaspectdiff < m_minAspectRatio))
 			{
 				//vertical
 
@@ -534,7 +564,7 @@ void GateDetector::FindContours(Mat img_src)
 
 	//found gate
 	
-	if (Vertical_large.area >minArea && Vertical_small.area <minArea && Horizontal_large.area < minArea)
+	if (Vertical_large.area >minArea && Vertical_small.area <=minArea && Horizontal_large.area <=minArea)
 	{
 		finalGate.area = Vertical_large.area;
 		finalGate.centerx = Vertical_large.centerx;
@@ -555,11 +585,11 @@ void GateDetector::FindContours(Mat img_src)
 		finalGate.gatepieces = 1;
 		finalGate.angle = Horizontal_large.angle;
 	}
-	else if (Horizontal_large.area < minArea && Vertical_large.area >minArea && Vertical_small.area >minArea)
+	else if ((Horizontal_large.area < minArea || Horizontal_large.area < Vertical_small.area) && Vertical_large.area >minArea && Vertical_small.area >minArea)
 	{
 		//have two verticals which we have to assume form a gate
 		//information to save: center of gate and range, range => height information
-		finalGate.area = (Vertical_large.area + Vertical_small.area)/2;
+		finalGate.area = Vertical_large.area;//(Vertical_large.area + Vertical_small.area)/2;
 		finalGate.centerx = (Vertical_large.centerx + Vertical_small.centerx)/2;
 		finalGate.centery = (Vertical_large.centery + Vertical_small.centery)/2;
 		finalGate.width = abs(Vertical_large.centerx-Vertical_small.centerx);
@@ -656,7 +686,7 @@ void GateDetector::FindContours(Mat img_src)
 			if (Xdistance_vert2 == 1)
 			{
 				//best corner = Horizontal_small+Vertical_large
-				finalGate.area = (Vertical_large.height*Horizontal_small.width);
+				finalGate.area = Vertical_large.area;//(Vertical_large.height*Horizontal_small.width);
 				finalGate.centerx = Horizontal_small.centerx;
 				finalGate.centery = Vertical_large.centery;
 				finalGate.width = Horizontal_small.width;
@@ -666,7 +696,7 @@ void GateDetector::FindContours(Mat img_src)
 			else if (Xdistance_vert2 ==2)
 			{
 				//best corner = Horizontal_small+Vertical_small
-				finalGate.area = (Vertical_small.height*Horizontal_small.width);
+				finalGate.area = Vertical_large.area;
 				finalGate.centerx = Horizontal_small.centerx;
 				finalGate.centery = Vertical_small.centery;
 				finalGate.width = Horizontal_small.width;
@@ -680,7 +710,7 @@ void GateDetector::FindContours(Mat img_src)
 			if (Xdistance_vert1 == 1)
 			{
 				//best corner = Horizontal_large+Vertical_large
-				finalGate.area = (Vertical_large.area+Horizontal_large.area)/2;
+				finalGate.area = Vertical_large.area;
 				finalGate.centerx = Horizontal_large.centerx;
 				finalGate.centery = Vertical_large.centery;
 				finalGate.width = Horizontal_large.width;
@@ -690,7 +720,7 @@ void GateDetector::FindContours(Mat img_src)
 			else if (Xdistance_vert1 ==2)
 			{
 				//best corner = Horizontal_large+Vertical_small
-				finalGate.area = (Vertical_small.area+Horizontal_large.area)/2; //so not right, but its not used so whatever
+				finalGate.area = Horizontal_large.area; //so not right, but its not used so whatever
 				finalGate.centerx = Horizontal_large.centerx;
 				finalGate.centery = Vertical_small.centery;
 				finalGate.width = Horizontal_large.width;
