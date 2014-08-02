@@ -5,6 +5,8 @@ from stateMachine import *
 from motionStates import *
 
 import ram.ai.new.utilClasses as utilClasses
+import ram.ai.Utility as oldUtil
+
 
 @require_transitions('next')
 class Start(State):
@@ -139,3 +141,19 @@ class Task(ConstrainedState):
         def enter(self):
             self._taskTimer.reset()
             super(Task, self).enter()
+#this class stops and freezes for a parameterized amount of time
+#so the robot stops and doesn't move for a fixed amount of time
+#this pause is non-blocking
+class StopAndFreeze(State):
+    def __init__(self, stopTime):
+        super(StopAndFreeze, self).__init__()
+        self.timer = utilClasses.Timer(stopTime)
+
+    def enter(self):
+        self.timer.reset()
+        oldUtil.freeze(self.getStateMachine().getLegacyState())
+    
+    def update(self):
+        if(timer.check() == False):
+            self.doTransition('next')
+
