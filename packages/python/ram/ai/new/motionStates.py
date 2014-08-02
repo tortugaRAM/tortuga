@@ -154,7 +154,7 @@ class TurnTo(MotionState):
             initialValue = currentOrientation,
             finalValue = math.Quaternion(math.Degree(self._angle), 
                                          math.Vector3.UNIT_Z),
-            timePeriod = self._angle,
+            timePeriod = 200,
             initialTime = 0)
         mot = motion.basic.ChangeOrientation(traj)
         return mot

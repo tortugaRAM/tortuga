@@ -38,7 +38,7 @@ Subsystems:
                      "StateEstimator"]
         States:
             # Includes all the state specific NBRF settings
-            INCLUDE: data/config/ai/transdec2014_sonar_orient.yml
+            INCLUDE: data/config/ai/transdec2014_only_sonar.yml
 
 
     # Includes all common subsystems

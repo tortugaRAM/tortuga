@@ -9,7 +9,8 @@ Subsystems:
          type: AI
 
          # Includes the "taskOrder" for the AI
-         # INCLUDE: data/config/ai/nbrf_ai.yml
+         #INCLUDE: data/config/ai/nbrf_ai.yml
+         INCLUDE: data/config/ai/transdec2014_ai.yml
 
 
     StateMachine:
@@ -19,8 +20,8 @@ Subsystems:
                      "StateEstimator"]
         States:
             # Includes all the state specific NBRF settings
-            INCLUDE: data/config/ai/nbrf_state.yml
-
+            #INCLUDE: data/config/ai/nbrf_state.yml
+            INCLUDE: data/config/ai/transdec2014_sonar_orient.yml
 
     # Includes all common subsystems    
     INCLUDE: data/config/base.yml

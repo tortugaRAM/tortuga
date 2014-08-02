@@ -173,4 +173,15 @@ class StopAndFreeze(State):
         if(self.timer.check() == False):
             self.doTransition('next')
 
+class WaitState(State):
+    def __init__(self, waitTime):
+        super(WaitState, self).__init__()
+        self._timer = utilClasses.Timer(waitTime)
+
+    def enter(self):
+        self.timer.reset()
+        
+    def update(self):
+        if(self.timer.check() == False):
+            self.doTransition('next')
 

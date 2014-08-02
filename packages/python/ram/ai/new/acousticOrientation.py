@@ -18,16 +18,17 @@ class AcousticOrientation(state.State):
     
     def update(self):
         self._sonarObject.update()
-        if(self.sonarCount < sonarObject.counter):
+        if(self.sonarCount+3  < self._sonarObject.counter):
             self.runMotion(self._sonarObject)
-            self.sonarCount = sonarObject.counter
+            self.sonarCount = self._sonarObject.counter
 
     def runMotion(self, event):
         currentOrientation = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedOrientation()
         currentRate = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedAngularRate()
         if (event.x != 0):
-            angle = m.degrees(-m.atan(event.y / event.x))
+            angle = m.degrees(m.atan(event.y / event.x))
         else:
+            angle = 0
             self._counter += 1
         traj = motion.trajectories.StepTrajectory(
             initialValue = currentOrientation,
