@@ -176,12 +176,30 @@ class OldSimulatorHackSonarObject(SonarObject):
     def __init__(self,oldStatePtr):
         super(OldSimulatorHackSonarObject,self).__init__()
         oldStatePtr.queuedEventHub.subscribeToType(vehicle.device.ISonar.UPDATE,self.callback)
+        self.counter = 0
 
     def callback(self,event):
         self.x = event.direction.x
         self.y = event.direction.y
         self.z = event.direction.z
         self.seen = True
+        self.counter = self.counter + 1
+
+class PingerTimeoutCheck(object):
+    def __init__(self, sonar, timeout):
+        self.sonar = sonar
+        self.timer = Timer(timeout)
+        self.lastCount = sonar.counter
+    
+    def check(self):
+        newCount = self.sonar.counter
+        if(newCount > self.lastCount):
+            self.lastCount = newCount
+            self.timer.reset()
+            return True
+        else:
+            return self.timer.check()
+        
         
 #checks if a vision object is in the range specified
 class ObjectInVisionRangeQuery(object):

@@ -7,6 +7,8 @@ from motionStates import *
 import math
 
 import ram.ai.new.utilClasses as utilClasses
+import ram.ai.Utility as oldUtil
+
 
 @require_transitions('next')
 class Start(State):
@@ -154,3 +156,21 @@ class Task(ConstrainedState):
         if self._maxDist is not None and math.sqrt((currPos.x - self._startPos.x, 2) + math.pow(currPos.y - self._startPos.y, 2)) > self._maxDist:
             return True
         return False
+
+#this class stops and freezes for a parameterized amount of time
+#so the robot stops and doesn't move for a fixed amount of time
+#this pause is non-blocking
+class StopAndFreeze(State):
+    def __init__(self, stopTime):
+        super(StopAndFreeze, self).__init__()
+        self.timer = utilClasses.Timer(stopTime)
+
+    def enter(self):
+        self.timer.reset()
+        oldUtil.freeze(self.getStateMachine().getLegacyState())
+    
+    def update(self):
+        if(self.timer.check() == False):
+            self.doTransition('next')
+
+

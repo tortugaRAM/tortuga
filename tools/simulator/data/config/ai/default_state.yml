@@ -1,5 +1,10 @@
 
 # Full Course
+ram.ai.new.mainState.Body:
+  states:
+    start:
+      type: Start
+
     gate:
       type: GateTask
       init:
@@ -111,7 +116,7 @@
     - [start, next, gate]
 
     #Shoot The Moon Sonar
-    - [shootTheMoonYaw, next, shootTheMoonDistance]
+    #- [shootTheMoonYaw, next, shootTheMoonDistance]
     - [shootTheMoonDistance, next, sonarPinger1]
 
     - [releaseOne, next, sonarPinger3]

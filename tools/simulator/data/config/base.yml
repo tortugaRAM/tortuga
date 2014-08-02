@@ -288,8 +288,8 @@ Simulation:
         #Main: objectives/target2.sml
         #Main: objectives/buoy.sml
         #Main: objectives/multi_buoy.sml
-        Main: objectives/pinger.sml
-        #Main: objectives/safe.sml
+        #Main: objectives/pinger.sml
+        Main: objectives/safe.sml
         #Main: objectives/vase.sml
         #Main: objectives/window.sml
         #Main: objectives/caesar.sml
