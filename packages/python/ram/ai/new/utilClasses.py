@@ -279,14 +279,14 @@ class SonarSession(object):
         
         
 class hasQueryBeenTrue(object):
-    def __init__(self, timeout, query):
-        self._query = MethodType(query, self, self.__class__)
+    def __init__(self, timeout, queryF):
+        self._queryFF = queryF
         self._timer = Timer(timeout)
 
     def query(self):
         #if query false, reset timer and return true
-        if(not self._query()):
-            self._timer_reset()
+        if(not self._queryFF()):
+            self._timer.reset()
             return True
         else:
             #if query true return if the timer as triggered yet
