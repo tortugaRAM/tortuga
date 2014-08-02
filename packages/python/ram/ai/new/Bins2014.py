@@ -16,7 +16,8 @@ class BinData(object):
     def __init__(self, legacyState, symbol1, symbol2):
         self.bins = []
         for i in xrange(5):
-            self.bins.append(utilClasses.BinVisionObject(legacyState, i))
+            #self.bins.append(utilClasses.BinVisionObject(legacyState, i))
+            self.bins.append(utilClasses.FakeBinVisionObject(legacyState, i))
 
         self.symbol1 = symbol1
         self.count1 = defaultdict(int)
@@ -63,12 +64,20 @@ class BinsTask(utilStates.Task):
             ('bin2'             , 'failure' , 'failure'          ) 
             )
 
+    def enter(self):
+        super(BinsTask,self).enter()
+        self.getInnerStateMachine().getLegacyState().visionSystem.binDetectorOn()
+
     def update(self):
         super(BinsTask,self).update()
         if self.getInnerStateMachine().getCurrentState().getName() == 'failure':
             self.doTransition('failure')
         elif self.getInnerStateMachine().getCurrentState().getName() == 'success':
-            self.doTransition('success')
+            self.doTransition('complete')
+
+    def leave(self):
+        super(BinsTask,self).enter()
+        self.getInnerStateMachine().getLegacyState().visionSystem.binDetectorOff()
 
 @require_transitions('next')
 class BinHover(State):
@@ -86,25 +95,32 @@ class BinHover(State):
             return
 
         for i in xrange(1,5):
-            if self.data.bins[i].z == self.data.binSymbol1:
-                self.data.binCount1[i] += 1
-            elif self.data.bins[i].z == self.data.binSymbol2:
-                self.data.binCount2[i] += 1
+            if self.data.bins[i].symbol == self.data.symbol1:
+                self.data.count1[i] += 1
+            elif self.data.bins[i].symbol == self.data.symbol2:
+                self.data.count2[i] += 1
 
 @require_transitions('complete', 'failure')
 class BinSearch(utilStates.NestedState):
     def __init__(self, binData, markerNum):
         super(BinSearch, self).__init__(StateMachine())
+        self.data = binData
+        self.markerNum = markerNum
 
-        count = getattr(binData, 'count' + str(markerNum))
-        #vo = binData.bins[max(count, key=count.get)]
-        vo = None
+    def enter(self):
+        count = getattr(self.data, 'count' + str(self.markerNum))
+        i = 1
+        for k, v in count.iteritems():
+            if v > i:
+                i = k
+        print 'Centering on Bin ' + str(i)
+        vo = self.data.bins[i]
 
         self.getInnerStateMachine().addStates({
             'start'             : utilStates.Start(),
-            'center'            : approach.DownCenter(vo, 'buf1', 'end'),
+            'center'            : approach.DownCenter(vo, 'buf1', 'end', xBound = .05, yBound = .05),
             'buf1'              : motion.Forward(0),
-            'drop'              : BinDrop(markerNum),
+            'drop'              : BinDrop(self.markerNum),
             'end'               : utilStates.End()
             })
 
@@ -114,6 +130,8 @@ class BinSearch(utilStates.NestedState):
             ('drop'   , 'next'     , 'end'   )
             )
 
+        super(BinSearch, self).enter()
+
 @require_transitions('next')
 class BinDrop(State):
     def __init__(self, markerNum):
@@ -122,5 +140,5 @@ class BinDrop(State):
 
     def enter(self):
         print 'Dropped marker ' + str(self._markerNum)
-        #StateMachine._LEGACY_STATE.vehicle.dropMarkerIndex(self._markerNum)
+        StateMachine._LEGACY_STATE.vehicle.dropMarkerIndex(self._markerNum)
         self.doTransition('next')

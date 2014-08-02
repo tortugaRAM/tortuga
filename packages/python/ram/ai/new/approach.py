@@ -8,6 +8,8 @@ import ram.ai.new.utilClasses as util
 import downwardsVisualServoing as downVS
 import forwardsVisualServoing as fVS
 import acousticServoing as aS
+import acousticOrientation as aO
+import math as m
 
 class Surrender(state.State):
     def __init__(self):
@@ -18,7 +20,9 @@ class Surrender(state.State):
         self.doTransition('next')
 
 class Approach(search.SearchPattern):
-    def __init__(self, stopConditions, servoingStateMachine,success, failure, retryConstraint = lambda : True, recoverAction = Surrender(), constraint = lambda : True):
+    def __init__(self, stopConditions, servoingStateMachine, success, failure, 
+                 retryConstraint = lambda : True, recoverAction = Surrender(), 
+                 constraint = lambda : True):
         super(Approach,self).__init__(ServoingMachine(servoingStateMachine, retryConstraint, recoverAction), stopConditions, success, failure, constraint)
 
 class ServoingMachine(stateMachine.StateMachine):
@@ -26,7 +30,7 @@ class ServoingMachine(stateMachine.StateMachine):
         super(ServoingMachine,self).__init__()
         start = self.addState('start',utilStates.Start())
         end = self.addState('end',utilStates.End())
-        #servo needs to be accesible, this is to allow for certain exit callbacks to get set if needed
+        #servo needs to be accessible, this is to allow for certain exit callbacks to get set if needed
         self._servo = self.addState('servo', utilStates.ConstrainedState(servoingStateMachine, retryConstraint, 'end',  'recover'))
         self._recover = self.addState('recover', recoverAction)
         #ensure appropriate transitions are set for recovery state
@@ -67,3 +71,7 @@ class SonarCenter(Approach):
         a = utilStates.StopAndFreeze(waitTime)
         a.setTransition('next','servo')
         super(SonarCenter, self).__init__(util.ObjectInSonarQuery(sonarObject, destination.x, destination.y, destination.z, .1, .1, .1).query ,VisualServoingStateMachine(aS.AcousticServoing(sonarObject, destination, minVx, minVy)), success, failure,utilClasses.PingerTimeoutCheeck(sonarObject, stopTimeout) ,a)
+
+class SonarOrient(Approach):
+    def __init__(self, sonarObject, success, failure, destination):
+        super(SonarOrient, self).__init__(util.ObjectInSonarQueryAngle(sonarObject, 5).query ,VisualServoingStateMachine(aO.AcousticOrientation(sonarObject)), success, failure)

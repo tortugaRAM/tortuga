@@ -9,7 +9,7 @@ import ram.ai.new.approach as approach
 
 
 class TorpedoTask(utilStates.Task):
-    def __init__(self, configNode,success, failure, duration = 300):
+    def __init__(self, configNode, success, failure, duration = 300):
         super(TorpedoTask,self).__init__(TorpedoMachine(configNode),success, failure, duration) 
 
     def update(self):
@@ -21,11 +21,12 @@ class TorpedoTask(utilStates.Task):
             
     def enter(self):
         super(TorpedoTask,self).enter()
-        self.getStateMachine().getLegacyState().visionSystem.cupidDetectorOn()
+        self.getInnerStateMachine().getLegacyState().visionSystem.cupidDetectorOn()
 
     def leave(self):
         super(TorpedoTask,self).leave()
-        self.getStateMachine().getLegacyState().visionSystem.cupidDetectorOff()       
+        self.getInnerStateMachine().getLegacyState().visionSystem.cupidDetectorOff()       
+
 
 
 class FireLeft(state.State):
@@ -103,6 +104,7 @@ class TorpedoMachine(stateMachine.StateMachine):
         hole1Search = self.addState('hole1Search', search.ForwardsSearchPattern(holeSearchDist, hole1.isSeen,'hole1Center', 'backUp'))
         #competition day 4, made hole centering have timeout and just fire anyway when the state fails
         self.timer = utilClasses.Timer(holeSearchDuration)
+
         hole1Center = self.addState('hole1Center', approach.ForwardsCenter(hole1, 'fireLeft', 'fireLeft', holeCenteringRange, holeCenteringXYBound, holeCenteringXYBound, holeCenteringRangeBound, None, self.timer.check))
         hole1Center.setEnterCallback('next',self.timer.reset)
         fireLeft = self.addState('fireLeft', FireLeft('backUp'))

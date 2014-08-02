@@ -133,14 +133,28 @@ class Switch(State):
 
 class Task(ConstrainedState):
     def __init__(self, internalMachine, success, failure = 'end', 
-                 timerDuration = None):
-        self._taskTimer = utilClasses.Timer(timerDuration)
-        super(Task, self).__init__(internalMachine, self._taskTimer.check,
+                 timerDuration = None, maxDistance = None):
+        self._taskTimer = None
+        if timerDuration is not None:
+            self._taskTimer = utilClasses.Timer(timerDuration)
+        self._startPos = None
+        self._maxDist = maxDistance
+        super(Task, self).__init__(internalMachine, self.constrain,
                                    success, failure)
 
-        def enter(self):
-            self._taskTimer.reset()
-            super(Task, self).enter()
+    def enter(self):
+        self._taskTimer.reset()
+        self._startPos = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedPosition()
+        super(Task, self).enter()
+
+    def constrain(self):
+        if self._taskTimer is not None and self._taskTimer.check():
+            return True
+        currPos = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedPosition()
+        if self._maxDist is not None and currPos.distance(self._startPos) > self._maxDist:
+            return True
+        return False
+
 #this class stops and freezes for a parameterized amount of time
 #so the robot stops and doesn't move for a fixed amount of time
 #this pause is non-blocking
@@ -156,4 +170,5 @@ class StopAndFreeze(State):
     def update(self):
         if(timer.check() == False):
             self.doTransition('next')
+
 

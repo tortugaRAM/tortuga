@@ -1,7 +1,7 @@
 import time
 import ext.vision as vision
 import ext.vehicle as vehicle
-
+import math as m
 
 import subprocess as subprocess
 from types import MethodType
@@ -122,16 +122,37 @@ class PipeVisionObject(VisionObject):
     def seeit(self,event):
         self.seen = False
 
+class FakeBinVisionObject(VisionObject):
+    def __init__(self,oldStatePtr, bin_id):
+        super(FakeBinVisionObject,self).__init__()
+        self._bin_id = bin_id
+        self.symbol = bin_id
+        oldStatePtr.queuedEventHub.subscribeToType(vision.EventType.PIPE_FOUND,self.callback)
+        oldStatePtr.queuedEventHub.subscribeToType(vision.EventType.PIPE_LOST,self.seeit)
+
+    def callback(self, event):
+        self.seen = True
+        if self._bin_id == 0:
+            self.x = event.x
+            self.y = event.y
+        else:  
+            self.x = event.x + (0.2 * m.cos(0.5 * m.pi * self._bin_id))
+            self.y = event.y + (0.2 * m.sin(0.5 * m.pi * self._bin_id))
+        self.angle = event.angle.valueDegrees()
+        
+    def seeit(self, event):
+        self.seen = False
+
 class BinVisionObject(VisionObject):
     def __init__(self, oldStatePtr, bin_id):
         super(BinVisionObject,self).__init__()
         self._bin_id = bin_id
         self.symbol = -1
         oldStatePtr.queuedEventHub.subscribeToType(vision.EventType.BIN_FOUND, self.callback)
-        oldStatePtr.queuedEventHub.subscribeToType(vision.EventType.BIN_LOST, self.seeit)
+        #oldStatePtr.queuedEventHub.subscribeToType(vision.EventType.BIN_LOST, self.seeit)
 
     def callback(self, event):
-        bin = getattr(event, 'binvector' + str(self._bin_id))
+        bin = getattr(event, 'vectorbin' + str(self._bin_id))
         self.seen = True
         self.x = bin.x
         self.y = bin.y
@@ -209,7 +230,20 @@ class ObjectInSonarQuery(object):
     def query(self):
         self._obj.update()
         obj = self._obj
-        return self._obj.seen and ((abs(obj.x - self._x_center) <= self._x_range) and (abs(obj.y - self._y_center) <= self._y_range))        
+        return self._obj.seen and ((abs(obj.x - self._x_center) <= self._x_range) and (abs(obj.y - self._y_center) <= self._y_range))
+
+class ObjectInSonarQueryAngle(object):
+    def __init__(self, sonarObject, angle_range):
+        self._obj = sonarObject
+        self._angle_range = angle_range
+
+    def query(self):
+        self._obj.update()
+        obj = self._obj
+        if (obj.x != 0):
+            return (abs(m.degrees(m.atan(obj.y/obj.x))) <= self._angle_range)
+        else:
+            return False
 
 # this class transforms a query into a  query which only becomes false if the the query has 
 # only returned false under a certain amount of time(such that all queries made in that time 
