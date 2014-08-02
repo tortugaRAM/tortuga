@@ -15,7 +15,7 @@ lcdshow -t "Running..."
 lcdshow -unsafe
 source scripts/setenv
 /home/tortuga/firereset
-python tools/acs/src/main.py -c data/config/transdec2011.yml -s ram.ai.course.Gate
+python tools/acs/src/main.py -c data/config/transdec2014.yml -s ram.ai.course.GateTask
 
 
 
