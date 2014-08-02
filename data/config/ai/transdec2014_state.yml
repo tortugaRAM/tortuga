@@ -21,6 +21,7 @@ ram.ai.new.mainState.Body:
     boopBuoy:
       type: BoopBuoyTask
       init:
+        searchDistance: 3
         boopDepth: 8
         endDepth: 4
         success: boopForward
@@ -230,8 +231,7 @@ ram.ai.new.mainState.Body:
       
   transitions:
     - [start, next, gate]
-    - [gateForward, next, pipeAlignBuoyBoop]
-    - [pipeAlignBuoyBoop, next, boopBuoy]
+    - [gateForward,  next, boopBuoy]
     - [boopForward, next, pipeAlignBuoyNCP]
 
     - [strafeTorps, next, torps]

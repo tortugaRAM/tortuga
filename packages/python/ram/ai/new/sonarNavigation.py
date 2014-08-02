@@ -42,7 +42,7 @@ class SonarNavigation(StateMachine):
 
         self.addTransitions(
             ('start', 'next', 'diveStart'),
-            ('diveStart', 'next', 'servoing2'),#'orientation'),
+            ('diveStart', 'next', 'servoing1'),#'orientation'),
             ('orientation', 'next', 'buf1'),
             ('buf1', 'next', 'servoing1'),
             ('buf2', 'next', 'diveShort'),

@@ -16,7 +16,7 @@ sleep 2
 #lcdshow -setbars 240
 lcdshow -t "Running..."
 
-python tools/acs/src/main.py -c data/config/transdec2014_qual.yml -s ram.ai.course.GateTask
+python tools/acs/src/main.py -c data/config/transdec2014.yml -s ram.ai.course.GateTask
 
 #lcdshow -noblink
 #lcdshow -setbars 12
