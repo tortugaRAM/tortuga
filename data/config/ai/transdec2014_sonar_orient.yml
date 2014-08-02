@@ -8,9 +8,9 @@ ram.ai.new.mainState.Body:
       init:
         success: end
         failure: end
-        startDepth: 1.2
-        shortDepth: 1.2
-        endDepth: 1.2
+        startDepth: 1.3
+        shortDepth: 1.3
+        endDepth: 1.3
         duration: 300
     end:
       type: End

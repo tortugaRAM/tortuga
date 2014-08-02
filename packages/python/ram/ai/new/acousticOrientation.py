@@ -14,26 +14,36 @@ class AcousticOrientation(state.State):
     def __init__(self, sonarObject):
         super(AcousticOrientation, self).__init__()
         self._sonarObject = sonarObject
+        self._counter = 0
+        self._prev_x = 0
+        self._prev_y = 0
     
     def update(self):
         self._sonarObject.update()
-        self.runMotion(self._sonarObject)
+        if self._counter == 10:
+            self.runMotion(self._sonarObject)
+            self._counter = 0
+        else:
+            self._counter += 1
 
     def runMotion(self, event):
-        currentOrientation = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedOrientation()
-        if (event.x != 0):
-            angle = m.degrees(-m.atan(event.y / event.x))
-        else:
-            angle = 0
-
-        traj = motion.trajectories.StepTrajectory(
-            initialValue = currentOrientation,
-            finalValue = yawVehicleHelper(currentOrientation, angle),
-            initialRate = math.Vector3.ZERO,
-            finalRate = math.Vector3.ZERO,
-            initialTime = 0)
-        mot = motion.basic.ChangeOrientation(traj)
-        self.getStateMachine().getLegacyState().motionManager.setMotion(mot)
+        if (not (event.x ==  self._prev_x)) and (not (event.y == self._prev_y)):
+            currentOrientation = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedOrientation()
+            if (event.x != 0):
+                angle = m.degrees(-m.atan(event.y / event.x))
+            else:
+                angle = 0
+                
+                traj = motion.trajectories.StepTrajectory(
+                    initialValue = currentOrientation,
+                    finalValue = yawVehicleHelper(currentOrientation, angle),
+                    initialRate = math.Vector3.ZERO,
+                    finalRate = math.Vector3.ZERO,
+                    initialTime = 0)
+                mot = motion.basic.ChangeOrientation(traj)
+                self.getStateMachine().getLegacyState().motionManager.setMotion(mot)
+                self._prev_y = event.y
+                self._prev_x = event.x
         
         
         

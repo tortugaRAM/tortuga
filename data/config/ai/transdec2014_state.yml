@@ -7,7 +7,7 @@ ram.ai.new.mainState.Body:
       type: GateTask
       init:
         taskDepth: 4
-        forwardDistance: 12
+        forwardDistance: 11
         success: gateForward
         failure: end
         duration: 90
@@ -16,7 +16,7 @@ ram.ai.new.mainState.Body:
       type: Move
       init:
         x: 1
-        y: 0
+        y: 1
 
     boopBuoy:
       type: BoopBuoyTask
