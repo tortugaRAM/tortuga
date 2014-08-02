@@ -168,7 +168,7 @@ class StopAndFreeze(State):
         oldUtil.freeze(self.getStateMachine().getLegacyState())
     
     def update(self):
-        if(timer.check() == False):
+        if(self.timer.check() == False):
             self.doTransition('next')
 
 

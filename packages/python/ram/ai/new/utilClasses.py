@@ -186,13 +186,13 @@ class OldSimulatorHackSonarObject(SonarObject):
         self.counter = self.counter + 1
 
 class PingerTimeoutCheck(object):
-    def __init__(sonar, timeout):
+    def __init__(self, sonar, timeout):
         self.sonar = sonar
-        self.timer = Timer(timeout):
-        self.lastCount = sonar.count
+        self.timer = Timer(timeout)
+        self.lastCount = sonar.counter
     
     def check(self):
-        newCount = sonar.count
+        newCount = self.sonar.counter
         if(newCount > self.lastCount):
             self.lastCount = newCount
             self.timer.reset()

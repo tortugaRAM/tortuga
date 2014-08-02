@@ -14,10 +14,13 @@ class AcousticOrientation(state.State):
     def __init__(self, sonarObject):
         super(AcousticOrientation, self).__init__()
         self._sonarObject = sonarObject
+        self.sonarCount = sonarObject.counter
     
     def update(self):
         self._sonarObject.update()
-        self.runMotion(self._sonarObject)
+        if(self.sonarCount < sonarObject.counter):
+            self.runMotion(self._sonarObject)
+            self.sonarCount = sonarObject.counter
 
     def runMotion(self, event):
         currentOrientation = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedOrientation()
