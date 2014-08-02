@@ -245,37 +245,16 @@ FowardPipeDetector:
     minHessian: 250
     redDilateIterations: 5
     redErodeIterations: 1
-    BlurAmount: 5
-    DistanceRef: 50
-    HueShiftNumber: 15
-    MaxAreaRatio: 4
-    MaxPerimeter: 0.2
-    MinAreaRatio: 0
-    MinPerimeter: 0
-    Threshvalue: 15
-    dilateIterations: 0
-    filtRedCMax: 255
-    filtRedCMin: 0
-    filtRedHMax: 90
-    filtRedHMin: 0
-    filtRedLMax: 255
-    filtRedLMin: 70
-    maxAspectRatio: 0.6
-    minAspectRatio: 0
-    minPixels: 3000
-    minPixelsFound: 2500
-    minSize: 70
-    noHough: 0
-    samePipeThreshold: 0.2
+
 ChrisPipeDetector:
     BlurAmount: 5
     DistanceRef: 50
-    HueShiftNumber: 4.82
-    MaxAreaRatio: 4
-    MaxPerimeter: 0.2
+    HueShiftNumber: 0
+    MaxAreaRatio: 10
+    MaxPerimeter: 10
     MinAreaRatio: 0
     MinPerimeter: 0
-    Threshvalue: 0
+    Threshvalue: 10
     dilateIterations: 0
     filtRedCMax: 255
     filtRedCMin: 0
@@ -283,22 +262,50 @@ ChrisPipeDetector:
     filtRedHMin: 0
     filtRedLMax: 255
     filtRedLMin: 70
-    maxAspectRatio: 0.6
+    maxAspectRatio: 10
     minAspectRatio: 0
     minPixels: 3000
     minPixelsFound: 2500
     minSize: 70
     noHough: 0
     samePipeThreshold: 0.2
+BinDetector:
+    AdaptiveThresholdWindow: 60
+    CalcTraining: 0
+    CompareBins: 0
+    MaxdistanceX: 90
+    MinSizeforContous: 270
+    MinimumFrames: 5
+    NumberofBinTypes: 8
+    NumberofImages: 5
+    SaveImages: 0
+    ThresholdForBinary: 20
+    UpperLimitforBin: 2
+    binLostFrames: 0
+    binSameThreshold: 0.25
+    debug: 0
+    filtredCMax: 255
+    filtredCMin: 145
+    filtredHMax: 97
+    filtredHMin: 95
+    filtredLMax: 154
+    filtredLMin: 41
+    maxAspectRatio: 2
+    maxSize: 800000
+    maxdistsanceY: 90
+    minAspectRatio: 0
+    minHessian: 250
+    redDilateIterations: 7
+    redErodeIterations: 1
 SonarChrisPipeDetector:
     BlurAmount: 5
     DistanceRef: 50
-    HueShiftNumber: 123.23
-    MaxAreaRatio: 4
-    MaxPerimeter: 1.2
+    HueShiftNumber: 130
+    MaxAreaRatio: 14
+    MaxPerimeter: 15
     MinAreaRatio: 0
     MinPerimeter: 0
-    Threshvalue: 15
+    Threshvalue: 1
     dilateIterations: 0
     filtRedCMax: 255
     filtRedCMin: 0
@@ -306,7 +313,7 @@ SonarChrisPipeDetector:
     filtRedHMin: 0
     filtRedLMax: 255
     filtRedLMin: 70
-    maxAspectRatio: 1.6
+    maxAspectRatio: 6
     minAspectRatio: 0
     minPixels: 3000
     minPixelsFound: 2500

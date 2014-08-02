@@ -25,29 +25,29 @@ class SonarNavigation(StateMachine):
         super(SonarNavigation, self).__init__()
         
         pinger = utilClasses.OldSimulatorHackSonarObject(self.getLegacyState())
-        
+
+
         self.addStates({
-                'start',utilStates.Start(),
-                'end',utilStates.End(),
-                'orientation', approach.SonarOrient(pinger, 'buf1', 'buf4', math.Vector3(0.0,0.0,3.0)),
-                'servoing1', approach.SonarCenter(pinger, 'buf2', 'buf4', math.Vector3(5.0,5.0,3.0), 0.15, 0.15),
-                'servoing2', approach.SonarCenter(pinger, 'diveEnd', 'buf4', math.Vector3(0.0,0.0,3.0), .1, .1),
-                'diveStart', motionStates.DiveTo(startDepth),
-                'diveShort', motionStates.DiveTo(shortDepth),
-                'diveEnd', motionStates.DiveTo(endDepth),
-                'buf1' : motionStates.Forward(0),
-                'buf2' : motionStates.Forward(0),
-                'buf3' : motionStates.Forward(0),
-                'buf4' : motionStates.Forward(0)
-                })
+                'start':utilStates.Start(),
+                'end': utilStates.End(),
+                'orientation': approach.SonarOrient(pinger, 'buf1', 'buf4', math.Vector3(0.0,0.0,3.0)),
+                'servoing1': approach.SonarCenter(pinger, 'buf2', 'buf4', math.Vector3(5.0,5.0,3.0), 0.15, 0.15),
+                'servoing2': approach.SonarCenter(pinger, 'buf3', 'buf4', math.Vector3(0.0,0.0,3.0), .05, .05),
+                'diveStart': motionStates.DiveTo(startDepth),
+                'diveShort': motionStates.DiveTo(shortDepth),
+                'diveEnd': motionStates.DiveTo(endDepth),
+                'buf1': motionStates.Forward(0),
+                'buf2': motionStates.Forward(0),
+                'buf3': motionStates.Forward(0),
+                'buf4': motionStates.Forward(0)})
 
-       self.addTransitions(
-           ('start', 'next', 'diveStart'),
-           ('diveStart', 'next', 'orientation'),
-           ('buf1', 'next', 'servoing1'),
-           ('buf2', 'next', 'diveShort'),
-           ('diveShort', 'next', 'servoing2'),
-           ('buf3', 'next', 'diveEnd'),
-           ('diveEnd', 'next', 'end'),
-           ('buf4', 'next', 'end'))
-
+        self.addTransitions(
+            ('start', 'next', 'diveStart'),
+            ('diveStart', 'next', 'orientation'),
+            ('orientation', 'next', 'buf1'),
+            ('buf1', 'next', 'servoing1'),
+            ('buf2', 'next', 'diveShort'),
+            ('diveShort', 'next', 'servoing2'),
+            ('buf3', 'next', 'diveEnd'),
+            ('diveEnd', 'next', 'end'),
+            ('buf4', 'next', 'end'))
