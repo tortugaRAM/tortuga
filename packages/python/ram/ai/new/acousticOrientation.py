@@ -24,6 +24,7 @@ class AcousticOrientation(state.State):
 
     def runMotion(self, event):
         currentOrientation = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedOrientation()
+        currentRate = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedAngularRate()
         if (event.x != 0):
             angle = m.degrees(-m.atan(event.y / event.x))
         else:
@@ -32,7 +33,7 @@ class AcousticOrientation(state.State):
         traj = motion.trajectories.StepTrajectory(
             initialValue = currentOrientation,
             finalValue = yawVehicleHelper(currentOrientation, angle),
-            initialRate = math.Vector3.ZERO,
+            initialRate = currentRate,
             finalRate = math.Vector3.ZERO,
             initialTime = 0)
         mot = motion.basic.ChangeOrientation(traj)
