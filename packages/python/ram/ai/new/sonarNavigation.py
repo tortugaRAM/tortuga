@@ -31,7 +31,7 @@ class SonarNavigation(StateMachine):
                 'start':utilStates.Start(),
                 'end': utilStates.End(),
                 'orientation': approach.SonarOrient(pinger, 'buf1', 'buf4', math.Vector3(0.0,0.0,3.0)),
-                'servoing1': approach.SonarCenter(pinger, 'buf2', 'buf4', math.Vector3(5.0,5.0,3.0), 0.15, 0.15),
+                'servoing1': approach.SonarCenter(pinger, 'buf2', 'buf4', math.Vector3(0.0,0.0,3.0), 0.15, 0.15, 2, 2),
                 'servoing2': approach.SonarCenter(pinger, 'buf3', 'buf4', math.Vector3(0.0,0.0,3.0), .05, .05),
                 'diveStart': motionStates.DiveTo(startDepth),
                 'diveShort': motionStates.DiveTo(shortDepth),

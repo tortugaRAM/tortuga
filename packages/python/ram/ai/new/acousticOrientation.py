@@ -26,7 +26,7 @@ class AcousticOrientation(state.State):
         currentOrientation = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedOrientation()
         currentRate = self.getStateMachine().getLegacyState().stateEstimator.getEstimatedAngularRate()
         if (event.x != 0):
-            angle = m.degrees(-m.atan(event.y / event.x))
+            angle = m.degrees(m.atan(event.y / event.x))
         else:
             self._counter += 1
         traj = motion.trajectories.StepTrajectory(

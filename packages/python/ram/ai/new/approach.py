@@ -67,10 +67,10 @@ class DownOrient(Approach):
         super(DownOrient,self).__init__(lambda : (abs(visionObject.angle) < angleBound),VisualServoingStateMachine(downVS.YawVisualServoing(visionObject)),success,failure)
         
 class SonarCenter(Approach):
-    def __init__(self, sonarObject, success, failure, destination, minVx = .1, minVy = .1, stopTimeout = 8 , waitTime = 4):
+    def __init__(self, sonarObject, success, failure, destination, minVx = .1, minVy = .1, xBound = 0.2, yBound = 0.2, stopTimeout = 8 , waitTime = 4):
         a = utilStates.StopAndFreeze(waitTime)
         a.setTransition('next','servo')
-        super(SonarCenter, self).__init__(util.ObjectInSonarQuery(sonarObject, destination.x, destination.y, destination.z, .1, .1, .1).query ,VisualServoingStateMachine(aS.AcousticServoing(sonarObject, destination, minVx, minVy)), success, failure,util.PingerTimeoutCheck(sonarObject, stopTimeout).check ,a)
+        super(SonarCenter, self).__init__(util.ObjectInSonarQuery(sonarObject, destination.x, destination.y, destination.z, xBound, yBound, .2).query ,VisualServoingStateMachine(aS.AcousticServoing(sonarObject, destination, minVx, minVy)), success, failure,util.PingerTimeoutCheck(sonarObject, stopTimeout).check ,a)
 
 class SonarOrient(Approach):
     def __init__(self, sonarObject, success, failure, destination):
