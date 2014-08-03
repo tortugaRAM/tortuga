@@ -21,7 +21,7 @@ ram.ai.new.mainState.Body:
     shootTheMoonYaw:
       type: TurnTo
       init:
-        angle: 75
+        angle: 80
 
     shootTheMoonDistance:
       type: Forward
